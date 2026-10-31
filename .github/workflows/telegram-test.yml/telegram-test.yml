@@ -15,3 +15,4 @@ jobs:
           curl -sS -X POST "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
           -d "chat_id=${CHAT_ID}" \
           --data-urlencode "text=ربات نوبیتکس با موفقیت به تلگرام متصل شد! 🚀"
+
