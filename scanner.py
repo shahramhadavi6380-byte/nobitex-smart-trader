@@ -1,9 +1,12 @@
 import requests
 import time
+import os
 
 API = "https://apiv2.nobitex.ir"
-BOT_TOKEN = ""
-CHAT_ID = ""
+BOT_TOKEN = os.environ.get("BOT_TOKEN")
+CHAT_ID = os.environ.get("CHAT_ID")
+
+
 
 def send_telegram(message):
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
