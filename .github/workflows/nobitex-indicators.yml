@@ -1,541 +1,789 @@
-name: Nobitex All Markets Scanner
+name: Nobitex All Markets Smart Scanner
 
 on:
   workflow_dispatch:
-
-permissions:
-  contents: read
+  schedule:
+    - cron: "0 */4 * * *"
 
 jobs:
   scan:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 45
 
     steps:
-      - name: Setup Python
+      - name: Install Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      - name: Install packages
-        run: pip install requests
+      - name: Install libraries
+        run: pip install requests pandas numpy
 
-      - name: Scan All Nobitex Markets
+      - name: Scan markets and send Telegram report
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
         run: |
-          python - <<'PY'
-          import requests
+          cat > scanner.py <<'PY'
+          import os
           import time
           import math
+          import requests
+          import numpy as np
+          import pandas as pd
           from datetime import datetime, timezone
 
           BASE = "https://apiv2.nobitex.ir"
-          BOT = __import__("os").environ["BOT_TOKEN"]
-          CHAT = __import__("os").environ["CHAT_ID"]
+          BOT_TOKEN = os.environ["BOT_TOKEN"]
+          CHAT_ID = os.environ["CHAT_ID"]
+
+          HEADERS = {
+              "User-Agent": "TraderBot/NobitexSmartScanner-1.0",
+              "Accept": "application/json"
+          }
 
           SESSION = requests.Session()
-          REQUEST_COUNT = 0
+          SESSION.headers.update(HEADERS)
 
-          def get_json(url, params=None):
-              global REQUEST_COUNT
-              for attempt in range(4):
+          # تنظیمات
+          SCREEN_LIMIT = 10
+          FINAL_REPORT_LIMIT = 10
+          TIMEFRAMES = [15, 60, 240]
+          CANDLE_COUNT = 350
+
+          def number(x, default=0):
+              try:
+                  v = float(x)
+                  return v if math.isfinite(v) else default
+              except:
+                  return default
+
+          def fmt(x):
+              if x is None or not math.isfinite(float(x)):
+                  return "نامشخص"
+              x = float(x)
+              if abs(x) >= 1000:
+                  return f"{x:,.0f}"
+              if abs(x) >= 1:
+                  return f"{x:,.4f}"
+              return f"{x:.8f}"
+
+          def get_json(url, params=None, attempts=4):
+              for attempt in range(attempts):
                   try:
-                      if "udf/history" in url:
-                          time.sleep(1.1)
-                      r = SESSION.get(url, params=params, timeout=25)
-                      REQUEST_COUNT += 1
+                      r = SESSION.get(
+                          url,
+                          params=params,
+                          timeout=25
+                      )
+
                       if r.status_code == 429:
-                          time.sleep(10 * (attempt + 1))
+                          wait = min(15, 3 * (attempt + 1))
+                          print(f"Rate limit: waiting {wait}s")
+                          time.sleep(wait)
                           continue
+
                       r.raise_for_status()
-                      return r.json()
-                  except Exception:
-                      if attempt == 3:
-                          return None
-                      time.sleep(3 * (attempt + 1))
+                      data = r.json()
+
+                      if isinstance(data, dict):
+                          if data.get("status") == "failed":
+                              time.sleep(2 * (attempt + 1))
+                              continue
+
+                      return data
+
+                  except Exception as e:
+                      print("Request error:", e)
+                      time.sleep(2 * (attempt + 1))
+
               return None
 
-          def send_telegram(message):
-              url = f"https://api.telegram.org/bot{BOT}/sendMessage"
-              parts = [message[i:i+3500] for i in range(0, len(message), 3500)]
-              for part in parts:
-                  try:
-                      SESSION.post(url, data={
-                          "chat_id": CHAT,
-                          "text": part
-                      }, timeout=25)
-                  except Exception as e:
-                      print("Telegram error:", e)
+          def get_all_markets():
+              data = get_json(BASE + "/market/stats")
 
-          def valid(x):
-              try:
-                  x = float(x)
-                  return math.isfinite(x)
-              except:
-                  return False
+              if not data or not isinstance(data.get("stats"), dict):
+                  raise RuntimeError("دریافت فهرست بازارهای نوبیتکس ناموفق بود")
 
-          def ema(values, period):
-              if len(values) < period:
-                  return None
-              result = sum(values[:period]) / period
-              alpha = 2 / (period + 1)
-              for x in values[period:]:
-                  result = alpha * x + (1-alpha) * result
-              return result
+              markets = []
 
-          def ema_series(values, period):
-              if not values:
-                  return []
-              result = values[0]
-              alpha = 2 / (period + 1)
-              out = [result]
-              for x in values[1:]:
-                  result = alpha*x + (1-alpha)*result
-                  out.append(result)
-              return out
-
-          def rsi(values, period=14):
-              if len(values) < period + 1:
-                  return None
-              changes = [values[i]-values[i-1] for i in range(1,len(values))]
-              gains = [max(x,0) for x in changes]
-              losses = [max(-x,0) for x in changes]
-              ag = sum(gains[:period])/period
-              al = sum(losses[:period])/period
-              for i in range(period,len(changes)):
-                  ag = (ag*(period-1)+gains[i])/period
-                  al = (al*(period-1)+losses[i])/period
-              if al == 0:
-                  return 100
-              return 100-(100/(1+ag/al))
-
-          def macd(values):
-              if len(values) < 35:
-                  return None, None
-              fast = ema_series(values,12)
-              slow = ema_series(values,26)
-              line = [a-b for a,b in zip(fast,slow)]
-              signal = ema(line,9)
-              return line[-1], signal
-
-          def adx_atr(high, low, close, period=14):
-              if len(close) < period*2+2:
-                  return None, None
-
-              tr, pdm, mdm = [], [], []
-
-              for i in range(1,len(close)):
-                  tr.append(max(
-                      high[i]-low[i],
-                      abs(high[i]-close[i-1]),
-                      abs(low[i]-close[i-1])
-                  ))
-                  up = high[i]-high[i-1]
-                  down = low[i-1]-low[i]
-                  pdm.append(up if up>down and up>0 else 0)
-                  mdm.append(down if down>up and down>0 else 0)
-
-              st = sum(tr[:period])
-              sp = sum(pdm[:period])
-              sm = sum(mdm[:period])
-              dx = []
-
-              for i in range(period-1,len(tr)):
-                  if i >= period:
-                      st = st-st/period+tr[i]
-                      sp = sp-sp/period+pdm[i]
-                      sm = sm-sm/period+mdm[i]
-
-                  if st <= 0:
+              for key, item in data["stats"].items():
+                  if not isinstance(item, dict):
                       continue
 
-                  pdi = 100*sp/st
-                  mdi = 100*sm/st
-                  den = pdi+mdi
-
-                  if den > 0:
-                      dx.append(100*abs(pdi-mdi)/den)
-
-              if len(dx) < period:
-                  return None, None
-
-              adx = sum(dx[:period])/period
-              for x in dx[period:]:
-                  adx = (adx*(period-1)+x)/period
-
-              atr = st/period
-              if not valid(adx) or not valid(atr):
-                  return None, None
-              return adx, atr
-
-          def bollinger(values, period=20):
-              if len(values)<period:
-                  return None,None,None
-              data=values[-period:]
-              mid=sum(data)/period
-              sd=(sum((x-mid)**2 for x in data)/period)**0.5
-              return mid-2*sd,mid,mid+2*sd
-
-          def midpoint(high,low,period,end=None):
-              if end is None:
-                  end=len(high)
-              start=end-period
-              if start<0:
-                  return None
-              return (max(high[start:end])+min(low[start:end]))/2
-
-          def ichimoku(high,low):
-              n=len(high)
-              if n<80:
-                  return None,None,None,None
-              tenkan=midpoint(high,low,9)
-              kijun=midpoint(high,low,26)
-              idx=n-26
-              if idx<52:
-                  return tenkan,kijun,None,None
-              old_t=midpoint(high,low,9,idx)
-              old_k=midpoint(high,low,26,idx)
-              span_a=(old_t+old_k)/2 if old_t is not None and old_k is not None else None
-              span_b=midpoint(high,low,52,idx)
-              return tenkan,kijun,span_a,span_b
-
-          def obv_trend(close,volume):
-              if len(close)<22 or len(volume)!=len(close):
-                  return None
-              obv=[0]
-              for i in range(1,len(close)):
-                  if close[i]>close[i-1]:
-                      obv.append(obv[-1]+volume[i])
-                  elif close[i]<close[i-1]:
-                      obv.append(obv[-1]-volume[i])
-                  else:
-                      obv.append(obv[-1])
-              return obv[-1]>obv[-21]
-
-          def pivots(high,low,window=3):
-              points=[]
-              for i in range(window,len(high)-window):
-                  is_high=high[i]>=max(high[i-window:i+window+1])
-                  is_low=low[i]<=min(low[i-window:i+window+1])
-                  if is_high and not is_low:
-                      points.append((i,high[i],"H"))
-                  elif is_low and not is_high:
-                      points.append((i,low[i],"L"))
-
-              clean=[]
-              for p in points:
-                  if clean and clean[-1][2]==p[2]:
-                      if (p[2]=="H" and p[1]>clean[-1][1]) or (p[2]=="L" and p[1]<clean[-1][1]):
-                          clean[-1]=p
-                  else:
-                      clean.append(p)
-              return clean
-
-          def fibonacci(high,low):
-              pts=pivots(high,low)
-              if len(pts)<2:
-                  return None
-              a,b=pts[-2],pts[-1]
-              if a[2]==b[2]:
-                  return None
-              if a[2]=="L":
-                  top,bottom=b[1],a[1]
-                  direction="UP"
-                  levels={r:top-(top-bottom)*r for r in (0.382,0.5,0.618)}
-              else:
-                  top,bottom=a[1],b[1]
-                  direction="DOWN"
-                  levels={r:bottom+(top-bottom)*r for r in (0.382,0.5,0.618)}
-              return direction,levels
-
-          def pitchfork(high,low):
-              pts=pivots(high,low)
-              if len(pts)<3:
-                  return None
-              a,b,c=pts[-3:]
-              if not (a[2]!=b[2] and b[2]!=c[2]):
-                  return None
-              midx=(b[0]+c[0])/2
-              midy=(b[1]+c[1])/2
-              if midx==a[0]:
-                  return None
-              slope=(midy-a[1])/(midx-a[0])
-              x=len(high)-1
-              median=a[1]+slope*(x-a[0])
-              line_b=b[1]+slope*(x-b[0])
-              line_c=c[1]+slope*(x-c[0])
-              return median,max(line_b,line_c),min(line_b,line_c)
-
-          def fetch_candles(symbol,resolution):
-              now=int(time.time())
-              params={
-                  "symbol":symbol,
-                  "resolution":str(resolution),
-                  "to":now,
-                  "countback":350
-              }
-              data=get_json(BASE+"/market/udf/history",params)
-              if not data or data.get("s")!="ok":
-                  return None
-
-              keys=["t","h","l","c","v"]
-              if any(k not in data for k in keys):
-                  return None
-
-              rows=[]
-              for i in range(min(len(data["t"]),len(data["h"]),len(data["l"]),len(data["c"]))):
-                  try:
-                      t=int(data["t"][i])
-                      h=float(data["h"][i])
-                      l=float(data["l"][i])
-                      c=float(data["c"][i])
-                      v=float(data.get("v",[0]*len(data["t"]))[i] or 0)
-                      if not all(valid(x) for x in [h,l,c,v]):
-                          continue
-                      if t < (now//(resolution*60))*(resolution*60):
-                          rows.append((t,h,l,c,max(v,0)))
-                  except:
+                  parts = key.lower().split("-")
+                  if len(parts) != 2:
                       continue
 
-              rows=sorted({r[0]:r for r in rows}.values())
-              if len(rows)<220:
-                  return None
+                  src, dst = parts
 
-              return {
-                  "time":[r[0] for r in rows],
-                  "high":[r[1] for r in rows],
-                  "low":[r[2] for r in rows],
-                  "close":[r[3] for r in rows],
-                  "volume":[r[4] for r in rows]
-              }
-
-          def analyze(data):
-              h=data["high"]
-              l=data["low"]
-              c=data["close"]
-              v=data["volume"]
-              price=c[-1]
-
-              e20=ema(c,20)
-              e50=ema(c,50)
-              e200=ema(c,200)
-              rv=rsi(c)
-              ml,ms=macd(c)
-              adx,atr=adx_atr(h,l,c)
-              bb=bollinger(c)
-              tenkan,kijun,span_a,span_b=ichimoku(h,l)
-              obv=obv_trend(c,v)
-              fib=fibonacci(h,l)
-              fork=pitchfork(h,l)
-
-              score=50
-
-              if e20 is not None and e50 is not None:
-                  score += 10 if e20>e50 else -10
-              if e200 is not None:
-                  score += 8 if price>e200 else -8
-              if ml is not None and ms is not None:
-                  score += 8 if ml>ms else -8
-              if rv is not None:
-                  if rv>55:
-                      score+=6
-                  elif rv<45:
-                      score-=6
-              if span_a is not None and span_b is not None:
-                  cloud_top=max(span_a,span_b)
-                  cloud_bottom=min(span_a,span_b)
-                  if price>cloud_top:
-                      score+=8
-                  elif price<cloud_bottom:
-                      score-=8
-              if adx is not None and adx>20 and e20 is not None and e50 is not None:
-                  score += 5 if e20>e50 else -5
-              if obv is not None:
-                  score += 5 if obv else -5
-
-              score=max(0,min(100,score))
-
-              return {
-                  "price":price,
-                  "score":score,
-                  "rsi":rv,
-                  "ema20":e20,
-                  "ema50":e50,
-                  "ema200":e200,
-                  "macd":ml,
-                  "macd_signal":ms,
-                  "adx":adx,
-                  "atr":atr,
-                  "bb":bb,
-                  "ichimoku":(tenkan,kijun,span_a,span_b),
-                  "obv":obv,
-                  "fib":fib,
-                  "pitchfork":fork
-              }
-
-          def market_signal(a,b,c):
-              scores=[a["score"],b["score"],c["score"]]
-              avg=sum(scores)/3
-              bullish=sum(x>=60 for x in scores)
-              bearish=sum(x<=40 for x in scores)
-
-              if bullish==3 and avg>=70:
-                  signal="STRONG BUY"
-              elif bearish==3 and avg<=30:
-                  signal="STRONG SELL"
-              elif bullish>=2 and avg>=60:
-                  signal="BUY"
-              elif bearish>=2 and avg<=40:
-                  signal="SELL"
-              else:
-                  signal="NEUTRAL"
-
-              return signal,round(avg)
-
-          print("Getting all Nobitex markets...")
-          stats=get_json(BASE+"/market/stats")
-
-          if not stats or not isinstance(stats.get("stats"),dict):
-              raise Exception("Could not retrieve market list")
-
-          markets=[]
-          for key,value in stats["stats"].items():
-              try:
-                  if not isinstance(value,dict):
-                      continue
-                  if value.get("isClosed") is True:
-                      continue
-                  src,dst=key.lower().split("-",1)
-                  if dst not in ("rls","usdt"):
-                      continue
-                  if src in ("rls","usdt"):
-                      continue
-                  quote="IRT" if dst=="rls" else "USDT"
-                  symbol=src.upper()+quote
-                  latest=float(value.get("latest",0))
-                  if latest<=0 or not valid(latest):
-                      continue
-                  markets.append((symbol,latest))
-              except:
-                  continue
-
-          markets=sorted(set(markets))
-          print("Active markets found:",len(markets))
-
-          results=[]
-          skipped=0
-
-          for number,(symbol,market_price) in enumerate(markets,1):
-              print(f"[{number}/{len(markets)}] {symbol}")
-
-              try:
-                  d15=fetch_candles(symbol,15)
-                  d60=fetch_candles(symbol,60)
-                  d240=fetch_candles(symbol,240)
-
-                  if not all([d15,d60,d240]):
-                      skipped+=1
+                  if dst not in ("rls", "usdt"):
                       continue
 
-                  a=analyze(d15)
-                  b=analyze(d60)
-                  c=analyze(d240)
+                  closed = item.get("isClosed", False)
+                  if str(closed).lower() == "true":
+                      continue
 
-                  signal,score=market_signal(a,b,c)
-
-                  atr=c["atr"]
-                  entry=c["price"]
-                  sl=tp1=tp2=None
-
-                  if atr and signal in ("BUY","STRONG BUY"):
-                      sl=entry-1.5*atr
-                      tp1=entry+2*atr
-                      tp2=entry+3*atr
-                  elif atr and signal in ("SELL","STRONG SELL"):
-                      sl=entry+1.5*atr
-                      tp1=entry-2*atr
-                      tp2=entry-3*atr
-
-                  results.append({
-                      "symbol":symbol,
-                      "price":entry,
-                      "signal":signal,
-                      "score":score,
-                      "s15":a["score"],
-                      "s60":b["score"],
-                      "s240":c["score"],
-                      "rsi":c["rsi"],
-                      "adx":c["adx"],
-                      "atr":atr,
-                      "sl":sl,
-                      "tp1":tp1,
-                      "tp2":tp2,
-                      "fib":c["fib"],
-                      "fork":c["pitchfork"]
-                  })
-
-              except Exception as e:
-                  print("Error:",symbol,e)
-                  skipped+=1
-
-          results.sort(key=lambda x:abs(x["score"]-50),reverse=True)
-
-          buys=sum(x["signal"] in ("BUY","STRONG BUY") for x in results)
-          sells=sum(x["signal"] in ("SELL","STRONG SELL") for x in results)
-          strong=sum(x["signal"].startswith("STRONG") for x in results)
-
-          now=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-
-          report=[
-              "📊 NOBITEX ALL-MARKETS SCANNER",
-              f"🕒 {now}",
-              "",
-              f"🔎 بازارهای فعال بررسی‌شده: {len(markets)}",
-              f"✅ تحلیل موفق: {len(results)}",
-              f"⚠️ بدون داده/خطا: {skipped}",
-              f"🟢 سیگنال خرید: {buys}",
-              f"🔴 سیگنال فروش: {sells}",
-              f"🔥 سیگنال قوی: {strong}",
-              "",
-              "🏆 TOP 15 MARKETS",
-              "امتیاز، احتمال موفقیت نیست؛ فقط امتیاز تکنیکال است.",
-              ""
-          ]
-
-          for x in results[:15]:
-              report.append(
-                  f"{x['symbol']} | {x['signal']} | Score {x['score']}/100"
-              )
-              report.append(
-                  f"قیمت: {x['price']:,.4f} | RSI 4h: {x['rsi']:.1f}"
-                  if x["rsi"] is not None else
-                  f"قیمت: {x['price']:,.4f}"
-              )
-              report.append(
-                  f"امتیاز تایم‌فریم‌ها: 15m={x['s15']} | 1h={x['s60']} | 4h={x['s240']}"
-              )
-
-              if x["sl"] is not None:
-                  report.append(
-                      f"SL: {x['sl']:,.4f} | TP1: {x['tp1']:,.4f} | TP2: {x['tp2']:,.4f}"
+                  symbol = src.upper() + (
+                      "IRT" if dst == "rls" else "USDT"
                   )
 
-              if x["adx"] is not None:
-                  report.append(f"ADX 4h: {x['adx']:.1f}")
+                  price = number(item.get("latest"))
+                  volume = number(item.get("volumeDst"))
 
-              report.append("")
+                  if price <= 0:
+                      continue
 
-          report.extend([
-              "⚠️ این گزارش توصیه قطعی خرید یا فروش نیست.",
-              "قبل از معامله، سیگنال‌ها باید بک‌تست و در حساب آزمایشی بررسی شوند."
-          ])
+                  markets.append({
+                      "symbol": symbol,
+                      "base": src.upper(),
+                      "quote": dst,
+                      "price": price,
+                      "volume": volume,
+                      "change": number(item.get("dayChange"))
+                  })
 
-          send_telegram("\n".join(report))
+              # حذف نمادهای تکراری
+              unique = {}
+              for m in markets:
+                  unique[m["symbol"]] = m
 
-          print("Finished.")
-          print("Markets:",len(markets))
-          print("Analyzed:",len(results))
-          print("Skipped:",skipped)
+              markets = list(unique.values())
+
+              if not markets:
+                  raise RuntimeError("هیچ بازار فعالی پیدا نشد")
+
+              return markets
+
+          def get_candles(symbol, resolution):
+              now = int(time.time())
+
+              params = {
+                  "symbol": symbol,
+                  "resolution": str(resolution),
+                  "to": now,
+                  "countback": CANDLE_COUNT
+              }
+
+              data = get_json(
+                  BASE + "/market/udf/history",
+                  params=params
+              )
+
+              if not data or data.get("s") != "ok":
+                  return None
+
+              try:
+                  df = pd.DataFrame({
+                      "time": data["t"],
+                      "open": data["o"],
+                      "high": data["h"],
+                      "low": data["l"],
+                      "close": data["c"],
+                      "volume": data.get("v", [0] * len(data["t"]))
+                  })
+
+                  for col in ["open", "high", "low", "close", "volume"]:
+                      df[col] = pd.to_numeric(df[col], errors="coerce")
+
+                  df["time"] = pd.to_numeric(df["time"], errors="coerce")
+                  df = df.dropna()
+                  df = df.sort_values("time")
+                  df = df.drop_duplicates(subset=["time"])
+
+                  # حذف کندل در حال تشکیل
+                  seconds = resolution * 60
+                  df = df[df["time"] + seconds <= now]
+
+                  if len(df) < 220:
+                      return None
+
+                  return df.reset_index(drop=True)
+
+              except Exception as e:
+                  print("Candle parsing error:", symbol, e)
+                  return None
+
+          def calculate_indicators(df):
+              d = df.copy()
+
+              c = d["close"]
+              h = d["high"]
+              l = d["low"]
+              v = d["volume"]
+
+              # EMA
+              d["ema20"] = c.ewm(span=20, adjust=False).mean()
+              d["ema50"] = c.ewm(span=50, adjust=False).mean()
+              d["ema200"] = c.ewm(span=200, adjust=False).mean()
+
+              # RSI
+              delta = c.diff()
+              gain = delta.clip(lower=0)
+              loss = -delta.clip(upper=0)
+
+              avg_gain = gain.ewm(
+                  alpha=1/14,
+                  adjust=False,
+                  min_periods=14
+              ).mean()
+
+              avg_loss = loss.ewm(
+                  alpha=1/14,
+                  adjust=False,
+                  min_periods=14
+              ).mean()
+
+              rs = avg_gain / avg_loss.replace(0, np.nan)
+              d["rsi"] = 100 - (100 / (1 + rs))
+              d.loc[(avg_loss == 0) & (avg_gain > 0), "rsi"] = 100
+
+              # MACD
+              ema12 = c.ewm(span=12, adjust=False).mean()
+              ema26 = c.ewm(span=26, adjust=False).mean()
+
+              d["macd"] = ema12 - ema26
+              d["macd_signal"] = d["macd"].ewm(
+                  span=9,
+                  adjust=False
+              ).mean()
+
+              # ATR و ADX
+              prev_close = c.shift(1)
+
+              tr = pd.concat([
+                  h - l,
+                  (h - prev_close).abs(),
+                  (l - prev_close).abs()
+              ], axis=1).max(axis=1)
+
+              up_move = h.diff()
+              down_move = -l.diff()
+
+              plus_dm = pd.Series(
+                  np.where(
+                      (up_move > down_move) & (up_move > 0),
+                      up_move,
+                      0
+                  ),
+                  index=d.index
+              )
+
+              minus_dm = pd.Series(
+                  np.where(
+                      (down_move > up_move) & (down_move > 0),
+                      down_move,
+                      0
+                  ),
+                  index=d.index
+              )
+
+              atr = tr.ewm(
+                  alpha=1/14,
+                  adjust=False,
+                  min_periods=14
+              ).mean()
+
+              plus_sm = plus_dm.ewm(
+                  alpha=1/14,
+                  adjust=False,
+                  min_periods=14
+              ).mean()
+
+              minus_sm = minus_dm.ewm(
+                  alpha=1/14,
+                  adjust=False,
+                  min_periods=14
+              ).mean()
+
+              plus_di = 100 * plus_sm / atr.replace(0, np.nan)
+              minus_di = 100 * minus_sm / atr.replace(0, np.nan)
+
+              dx = (
+                  100 * (plus_di - minus_di).abs()
+                  / (plus_di + minus_di).replace(0, np.nan)
+              )
+
+              d["atr"] = atr
+              d["plus_di"] = plus_di
+              d["minus_di"] = minus_di
+              d["adx"] = dx.ewm(
+                  alpha=1/14,
+                  adjust=False,
+                  min_periods=14
+              ).mean()
+
+              # Bollinger Bands
+              middle = c.rolling(20).mean()
+              std = c.rolling(20).std()
+
+              d["bb_mid"] = middle
+              d["bb_upper"] = middle + 2 * std
+              d["bb_lower"] = middle - 2 * std
+
+              # Ichimoku
+              tenkan = (
+                  h.rolling(9).max() +
+                  l.rolling(9).min()
+              ) / 2
+
+              kijun = (
+                  h.rolling(26).max() +
+                  l.rolling(26).min()
+              ) / 2
+
+              span_a = (tenkan + kijun) / 2
+
+              span_b = (
+                  h.rolling(52).max() +
+                  l.rolling(52).min()
+              ) / 2
+
+              d["tenkan"] = tenkan
+              d["kijun"] = kijun
+
+              # ابر متناظر با کندل فعلی
+              d["cloud_a"] = span_a.shift(26)
+              d["cloud_b"] = span_b.shift(26)
+
+              # OBV
+              direction = np.sign(c.diff()).fillna(0)
+              d["obv"] = (direction * v).cumsum()
+              d["obv_ma"] = d["obv"].rolling(20).mean()
+
+              return d
+
+          def find_pivots(df, left=4, right=4):
+              highs = df["high"].values
+              lows = df["low"].values
+
+              pivots = []
+
+              for i in range(left, len(df) - right):
+                  if highs[i] == max(highs[i-left:i+right+1]):
+                      pivots.append((i, highs[i], "H"))
+
+                  if lows[i] == min(lows[i-left:i+right+1]):
+                      pivots.append((i, lows[i], "L"))
+
+              pivots.sort(key=lambda x: x[0])
+
+              clean = []
+              for p in pivots:
+                  if clean and clean[-1][2] == p[2]:
+                      if p[2] == "H" and p[1] > clean[-1][1]:
+                          clean[-1] = p
+                      elif p[2] == "L" and p[1] < clean[-1][1]:
+                          clean[-1] = p
+                  else:
+                      clean.append(p)
+
+              return clean
+
+          def fibonacci(df):
+              pivots = find_pivots(df)
+
+              if len(pivots) < 2:
+                  return None
+
+              a, b = pivots[-2], pivots[-1]
+
+              top = max(a[1], b[1])
+              bottom = min(a[1], b[1])
+              diff = top - bottom
+
+              if diff <= 0:
+                  return None
+
+              return {
+                  "0.236": bottom + diff * 0.236,
+                  "0.382": bottom + diff * 0.382,
+                  "0.500": bottom + diff * 0.500,
+                  "0.618": bottom + diff * 0.618,
+                  "0.786": bottom + diff * 0.786
+              }
+
+          def pitchfork(df):
+              pivots = find_pivots(df)
+
+              if len(pivots) < 3:
+                  return None
+
+              p1, p2, p3 = pivots[-3:]
+
+              x1, y1, _ = p1
+              x2, y2, _ = p2
+              x3, y3, _ = p3
+
+              mx = (x2 + x3) / 2
+              my = (y2 + y3) / 2
+
+              if mx == x1:
+                  return None
+
+              slope = (my - y1) / (mx - x1)
+              current_x = len(df) - 1
+
+              median = y1 + slope * (current_x - x1)
+              offset = abs(y2 - (y1 + slope * (x2 - x1)))
+
+              upper = median + offset
+              lower = median - offset
+
+              return {
+                  "median": median,
+                  "upper": max(upper, lower),
+                  "lower": min(upper, lower)
+              }
+
+          def analyze(df):
+              d = calculate_indicators(df)
+              last = d.iloc[-1]
+
+              fields = [
+                  "close", "ema20", "ema50", "ema200",
+                  "rsi", "macd", "macd_signal",
+                  "adx", "atr", "bb_upper", "bb_mid",
+                  "bb_lower", "tenkan", "kijun",
+                  "cloud_a", "cloud_b", "obv", "obv_ma",
+                  "plus_di", "minus_di"
+              ]
+
+              result = {}
+              for f in fields:
+                  value = number(last[f], float("nan"))
+                  result[f] = value
+
+              if not all(math.isfinite(result[x]) for x in [
+                  "close", "ema20", "ema50", "ema200",
+                  "rsi", "macd", "macd_signal", "atr"
+              ]):
+                  return None
+
+              result["fib"] = fibonacci(df)
+              result["pitchfork"] = pitchfork(df)
+
+              # امتیاز تحلیلی؛ درصد احتمال برد نیست
+              score = 50
+
+              if result["close"] > result["ema20"]:
+                  score += 7
+              else:
+                  score -= 7
+
+              if result["ema20"] > result["ema50"]:
+                  score += 8
+              else:
+                  score -= 8
+
+              if result["ema50"] > result["ema200"]:
+                  score += 8
+              else:
+                  score -= 8
+
+              if result["macd"] > result["macd_signal"]:
+                  score += 8
+              else:
+                  score -= 8
+
+              if result["rsi"] >= 55:
+                  score += 7
+              elif result["rsi"] <= 45:
+                  score -= 7
+
+              if result["adx"] >= 25:
+                  if result["plus_di"] > result["minus_di"]:
+                      score += 5
+                  elif result["minus_di"] > result["plus_di"]:
+                      score -= 5
+
+              if result["close"] > result["cloud_a"] and \
+                 result["close"] > result["cloud_b"]:
+                  score += 5
+
+              elif result["close"] < result["cloud_a"] and \
+                   result["close"] < result["cloud_b"]:
+                  score -= 5
+
+              if result["obv"] > result["obv_ma"]:
+                  score += 3
+              else:
+                  score -= 3
+
+              result["score"] = max(0, min(100, score))
+
+              return result
+
+          def screen_markets(markets):
+              print("Screening all markets:", len(markets))
+
+              screened = []
+
+              for i, market in enumerate(markets, 1):
+                  symbol = market["symbol"]
+
+                  print(f"Screen {i}/{len(markets)}: {symbol}")
+
+                  df = get_candles(symbol, 60)
+
+                  if df is None:
+                      continue
+
+                  result = analyze(df)
+
+                  if result is None:
+                      continue
+
+                  market["screen_score"] = result["score"]
+                  market["screen_price"] = result["close"]
+                  screened.append(market)
+
+                  # رعایت فاصله درخواست‌ها
+                  time.sleep(1.1)
+
+              # انتخاب جداگانه برای بازارهای ریالی و تتری
+              selected = []
+
+              for quote in ["rls", "usdt"]:
+                  group = [
+                      m for m in screened
+                      if m["quote"] == quote
+                  ]
+
+                  group.sort(
+                      key=lambda x: x["volume"],
+                      reverse=True
+                  )
+
+                  selected.extend(group[:SCREEN_LIMIT])
+
+              return selected
+
+          def full_analysis(market):
+              symbol = market["symbol"]
+              results = {}
+
+              for tf in TIMEFRAMES:
+                  print(f"Full analysis {symbol} / {tf}m")
+
+                  df = get_candles(symbol, tf)
+
+                  if df is None:
+                      return None
+
+                  result = analyze(df)
+
+                  if result is None:
+                      return None
+
+                  results[tf] = result
+                  time.sleep(1.1)
+
+              scores = [results[tf]["score"] for tf in TIMEFRAMES]
+              average = sum(scores) / len(scores)
+
+              if average >= 65:
+                  signal = "BUY"
+              elif average <= 35:
+                  signal = "SELL"
+              else:
+                  signal = "NEUTRAL"
+
+              # تأیید جهت در تایم‌فریم‌ها
+              if signal == "BUY" and scores.count(1) == 3:
+                  signal = "STRONG BUY"
+
+              if signal == "SELL" and scores.count(0) == 3:
+                  signal = "STRONG SELL"
+
+              atr = results[240]["atr"]
+              price = results[240]["close"]
+
+              if signal in ("BUY", "STRONG BUY"):
+                  sl = price - 1.5 * atr
+                  tp1 = price + 2 * atr
+                  tp2 = price + 3 * atr
+
+              elif signal in ("SELL", "STRONG SELL"):
+                  sl = price + 1.5 * atr
+                  tp1 = price - 2 * atr
+                  tp2 = price - 3 * atr
+
+              else:
+                  sl = tp1 = tp2 = None
+
+              return {
+                  "symbol": symbol,
+                  "quote": market["quote"],
+                  "volume": market["volume"],
+                  "signal": signal,
+                  "score": round(average, 1),
+                  "timeframes": results,
+                  "sl": sl,
+                  "tp1": tp1,
+                  "tp2": tp2
+              }
+
+          def make_report(items, total_markets):
+              now = datetime.now(timezone.utc).strftime(
+                  "%Y-%m-%d %H:%M UTC"
+              )
+
+              lines = [
+                  "📊 گزارش اسکن هوشمند نوبیتکس",
+                  f"🕒 {now}",
+                  "",
+                  f"🔎 بازارهای شناسایی‌شده: {total_markets}",
+                  f"📈 بازارهای تحلیل کامل: {len(items)}",
+                  "",
+                  "━━━━━━━━━━━━━━━━━━"
+              ]
+
+              for item in items[:FINAL_REPORT_LIMIT]:
+                  symbol = item["symbol"]
+
+                  lines.extend([
+                      "",
+                      f"💠 {symbol}",
+                      f"سیگنال: {item['signal']}",
+                      f"امتیاز تحلیلی: {item['score']} از 100",
+                      ""
+                  ])
+
+                  for tf, label in [
+                      (15, "۱۵ دقیقه"),
+                      (60, "۱ ساعت"),
+                      (240, "۴ ساعت")
+                  ]:
+                      r = item["timeframes"][tf]
+
+                      lines.append(
+                          f"⏱ {label}: امتیاز {r['score']}"
+                      )
+
+                      lines.append(
+                          f"RSI: {fmt(r['rsi'])} | "
+                          f"ADX: {fmt(r['adx'])}"
+                      )
+
+                      lines.append(
+                          f"EMA20: {fmt(r['ema20'])}"
+                      )
+
+                      lines.append(
+                          f"MACD: {fmt(r['macd'])}"
+                      )
+
+                  lines.extend([
+                      "",
+                      f"قیمت: {fmt(item['timeframes'][240]['close'])}"
+                  ])
+
+                  if item["sl"] is not None:
+                      lines.extend([
+                          f"حد ضرر محاسباتی: {fmt(item['sl'])}",
+                          f"هدف اول: {fmt(item['tp1'])}",
+                          f"هدف دوم: {fmt(item['tp2'])}"
+                      ])
+
+                  lines.append("━━━━━━━━━━━━━━━━━━")
+
+              lines.extend([
+                  "",
+                  "⚠️ امتیازها احتمال سود نیستند.",
+                  "⚠️ این گزارش توصیه قطعی خرید یا فروش نیست.",
+                  "⚠️ قبل از معامله واقعی، بک‌تست و بررسی کارمزد ضروری است."
+              ])
+
+              return "\n".join(lines)
+
+          def send_telegram(message):
+              url = (
+                  f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+              )
+
+              # تقسیم پیام برای محدودیت تلگرام
+              chunks = [
+                  message[i:i+3800]
+                  for i in range(0, len(message), 3800)
+              ]
+
+              for chunk in chunks:
+                  response = requests.post(
+                      url,
+                      data={
+                          "chat_id": CHAT_ID,
+                          "text": chunk
+                      },
+                      timeout=30
+                  )
+
+                  response.raise_for_status()
+
+                  result = response.json()
+                  if not result.get("ok"):
+                      raise RuntimeError(
+                          "Telegram delivery failed: " + str(result)
+                      )
+
+                  time.sleep(1)
+
+          def main():
+              print("Starting Nobitex scanner...")
+
+              markets = get_all_markets()
+
+              print("Found markets:", len(markets))
+
+              selected = screen_markets(markets)
+
+              print("Selected for full analysis:", len(selected))
+
+              if not selected:
+                  send_telegram(
+                      "⚠️ اسکن انجام شد اما بازار مناسبی برای تحلیل پیدا نشد."
+                  )
+                  return
+
+              final_results = []
+
+              for i, market in enumerate(selected, 1):
+                  print(
+                      f"Full scan {i}/{len(selected)}: "
+                      f"{market['symbol']}"
+                  )
+
+                  try:
+                      result = full_analysis(market)
+
+                      if result:
+                          final_results.append(result)
+
+                  except Exception as e:
+                      print("Market error:", market["symbol"], e)
+
+              if not final_results:
+                  send_telegram(
+                      "⚠️ اسکن انجام شد اما تحلیل کامل بازارها ناموفق بود."
+                  )
+                  return
+
+              final_results.sort(
+                  key=lambda x: abs(x["score"] - 50),
+                  reverse=True
+              )
+
+              report = make_report(
+                  final_results,
+                  len(markets)
+              )
+
+              send_telegram(report)
+
+              print("Scanner completed successfully.")
+
+          if __name__ == "__main__":
+              main()
           PY
+
+          python scanner.py
