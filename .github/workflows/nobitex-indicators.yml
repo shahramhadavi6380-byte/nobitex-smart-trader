@@ -1,4 +1,4 @@
-name: Nobitex Technical Analysis
+name: Nobitex Advanced Technical Analysis
 
 on:
   workflow_dispatch:
@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Calculate Indicators
+      - name: Calculate All Indicators
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
@@ -20,6 +20,12 @@ jobs:
           import urllib.request
           import urllib.parse
           import time
+          import math
+          from statistics import mean, stdev
+
+          # =========================
+          # MARKET DATA
+          # =========================
 
           def get_candles(tf):
               now = int(time.time())
@@ -32,7 +38,10 @@ jobs:
                   "countback": 300
               })
 
-              url = "https://apiv2.nobitex.ir/market/udf/history?" + params
+              url = (
+                  "https://apiv2.nobitex.ir/market/udf/history?"
+                  + params
+              )
 
               req = urllib.request.Request(
                   url,
@@ -47,22 +56,33 @@ jobs:
 
               candles = []
 
-              for t, h, l, c in zip(
-                  data["t"], data["h"], data["l"], data["c"]
-              ):
-                  if int(t) + tf * 60 <= now:
-                      candles.append({
-                          "high": float(h),
-                          "low": float(l),
-                          "close": float(c)
-                      })
+              for i, t in enumerate(data["t"]):
+                  if int(t) + tf * 60 > now:
+                      continue
+
+                  candles.append({
+                      "time": int(t),
+                      "open": float(data["o"][i]),
+                      "high": float(data["h"][i]),
+                      "low": float(data["l"][i]),
+                      "close": float(data["c"][i]),
+                      "volume": float(
+                          data.get("v", [0] * len(data["t"]))[i]
+                      )
+                  })
+
+              candles.sort(key=lambda x: x["time"])
 
               if len(candles) < 250:
                   raise Exception(
-                      f"Not enough closed candles for {tf}: {len(candles)}"
+                      f"Not enough candles for {tf}: {len(candles)}"
                   )
 
               return candles
+
+          # =========================
+          # BASIC INDICATORS
+          # =========================
 
           def ema(values, period):
               alpha = 2 / (period + 1)
@@ -99,15 +119,281 @@ jobs:
               if avg_loss == 0:
                   return 100 if avg_gain > 0 else 50
 
-              return 100 - 100 / (
-                  1 + avg_gain / avg_loss
+              rs = avg_gain / avg_loss
+
+              return 100 - 100 / (1 + rs)
+
+          def midpoint(high, low, period, end):
+              start = end - period + 1
+
+              if start < 0:
+                  return None
+
+              return (
+                  max(high[start:end+1]) +
+                  min(low[start:end+1])
+              ) / 2
+
+          # =========================
+          # ATR / ADX
+          # =========================
+
+          def calculate_adx(high, low, close, period=14):
+
+              tr = []
+              plus_dm = []
+              minus_dm = []
+
+              for i in range(len(close)):
+
+                  if i == 0:
+                      tr.append(high[i] - low[i])
+                      plus_dm.append(0)
+                      minus_dm.append(0)
+                      continue
+
+                  tr.append(max(
+                      high[i] - low[i],
+                      abs(high[i] - close[i-1]),
+                      abs(low[i] - close[i-1])
+                  ))
+
+                  up = high[i] - high[i-1]
+                  down = low[i-1] - low[i]
+
+                  plus_dm.append(
+                      up if up > down and up > 0 else 0
+                  )
+
+                  minus_dm.append(
+                      down if down > up and down > 0 else 0
+                  )
+
+              atr = sum(tr[1:period+1]) / period
+
+              sm_plus = sum(plus_dm[1:period+1])
+              sm_minus = sum(minus_dm[1:period+1])
+
+              dx_values = []
+              atr_values = [None] * len(close)
+
+              for i in range(period, len(close)):
+
+                  if i > period:
+                      atr = (
+                          atr * (period-1) + tr[i]
+                      ) / period
+
+                      sm_plus = (
+                          sm_plus * (period-1) + plus_dm[i]
+                      )
+
+                      sm_minus = (
+                          sm_minus * (period-1) + minus_dm[i]
+                      )
+
+                  atr_values[i] = atr
+
+                  if atr == 0:
+                      dx_values.append(0)
+                      continue
+
+                  pdi = 100 * sm_plus / (atr * period)
+                  mdi = 100 * sm_minus / (atr * period)
+
+                  denominator = pdi + mdi
+
+                  dx = (
+                      100 * abs(pdi-mdi) / denominator
+                      if denominator else 0
+                  )
+
+                  dx_values.append(dx)
+
+              if len(dx_values) < period:
+                  raise Exception("Not enough ADX data")
+
+              adx = mean(dx_values[-period:])
+
+              return atr_values[-1], adx
+
+          # =========================
+          # BOLLINGER BANDS
+          # =========================
+
+          def bollinger(values, period=20):
+
+              window = values[-period:]
+
+              middle = mean(window)
+              deviation = stdev(window)
+
+              upper = middle + 2 * deviation
+              lower = middle - 2 * deviation
+
+              return lower, middle, upper
+
+          # =========================
+          # OBV
+          # =========================
+
+          def calculate_obv(close, volume):
+
+              obv = [0]
+
+              for i in range(1, len(close)):
+
+                  if close[i] > close[i-1]:
+                      obv.append(obv[-1] + volume[i])
+
+                  elif close[i] < close[i-1]:
+                      obv.append(obv[-1] - volume[i])
+
+                  else:
+                      obv.append(obv[-1])
+
+              return obv
+
+          # =========================
+          # ICHIMOKU
+          # =========================
+
+          def ichimoku(high, low):
+
+              n = len(high)
+
+              tenkan = [
+                  midpoint(high, low, 9, i)
+                  for i in range(n)
+              ]
+
+              kijun = [
+                  midpoint(high, low, 26, i)
+                  for i in range(n)
+              ]
+
+              span_a = [
+                  (
+                      (tenkan[i] + kijun[i]) / 2
+                      if tenkan[i] is not None
+                      and kijun[i] is not None
+                      else None
+                  )
+                  for i in range(n)
+              ]
+
+              span_b = [
+                  midpoint(high, low, 52, i)
+                  for i in range(n)
+              ]
+
+              # Cloud displayed at current candle:
+              # values calculated 26 candles earlier.
+
+              idx = n - 27
+
+              if idx < 0:
+                  raise Exception("Not enough Ichimoku data")
+
+              return (
+                  tenkan[-1],
+                  kijun[-1],
+                  span_a[idx],
+                  span_b[idx]
               )
 
-          def midpoint(highs, lows, period):
-              return (
-                  max(highs[-period:]) +
-                  min(lows[-period:])
-              ) / 2
+          # =========================
+          # FIBONACCI
+          # =========================
+
+          def find_pivots(high, low, left=3, right=3):
+
+              pivots = []
+
+              for i in range(left, len(high)-right):
+
+                  if high[i] == max(
+                      high[i-left:i+right+1]
+                  ):
+                      pivots.append((i, high[i], "H"))
+
+                  if low[i] == min(
+                      low[i-left:i+right+1]
+                  ):
+                      pivots.append((i, low[i], "L"))
+
+              pivots.sort(key=lambda x: x[0])
+
+              return pivots
+
+          def fibonacci(high, low, close):
+
+              pivots = find_pivots(high, low)
+
+              if len(pivots) < 2:
+                  return None
+
+              recent = pivots[-2:]
+
+              p1 = recent[0]
+              p2 = recent[1]
+
+              if p1[2] == p2[2]:
+                  return None
+
+              swing_high = max(p1[1], p2[1])
+              swing_low = min(p1[1], p2[1])
+
+              diff = swing_high - swing_low
+
+              if diff <= 0:
+                  return None
+
+              return {
+                  "0.236": swing_high - diff * 0.236,
+                  "0.382": swing_high - diff * 0.382,
+                  "0.500": swing_high - diff * 0.500,
+                  "0.618": swing_high - diff * 0.618,
+                  "0.786": swing_high - diff * 0.786
+              }
+
+          # =========================
+          # ANDREWS PITCHFORK
+          # =========================
+
+          def pitchfork(high, low, close):
+
+              pivots = find_pivots(high, low)
+
+              if len(pivots) < 3:
+                  return None
+
+              p = pivots[-3:]
+
+              x1, y1, _ = p[0]
+              x2, y2, _ = p[1]
+              x3, y3, _ = p[2]
+
+              mid_x = (x2 + x3) / 2
+              mid_y = (y2 + y3) / 2
+
+              if mid_x == x1:
+                  return None
+
+              slope = (mid_y - y1) / (mid_x - x1)
+
+              current_x = len(close) - 1
+
+              median = y1 + slope * (current_x - x1)
+
+              upper = y2 + slope * (current_x - x2)
+              lower = y3 + slope * (current_x - x3)
+
+              return median, upper, lower
+
+          # =========================
+          # FULL ANALYSIS
+          # =========================
 
           def analyze(tf, name):
 
@@ -116,10 +402,14 @@ jobs:
               close = [x["close"] for x in candles]
               high = [x["high"] for x in candles]
               low = [x["low"] for x in candles]
+              volume = [x["volume"] for x in candles]
 
-              ema20 = ema(close, 20)
-              ema50 = ema(close, 50)
-              ema200 = ema(close, 200)
+              price = close[-1]
+
+              # EMA
+              e20 = ema(close, 20)
+              e50 = ema(close, 50)
+              e200 = ema(close, 200)
 
               # RSI
               current_rsi = rsi(close)
@@ -129,87 +419,199 @@ jobs:
               slow = ema(close, 26)
 
               macd = [
-                  a-b for a,b in zip(fast,slow)
+                  a-b for a,b in zip(fast, slow)
               ]
 
               signal = ema(macd, 9)
 
+              # ADX / ATR
+              atr, adx = calculate_adx(
+                  high, low, close
+              )
+
+              # Bollinger
+              bb_lower, bb_middle, bb_upper = bollinger(close)
+
+              # OBV
+              obv = calculate_obv(close, volume)
+
+              obv_status = (
+                  "Rising" if obv[-1] > obv[-20]
+                  else "Falling" if obv[-1] < obv[-20]
+                  else "Flat"
+              )
+
               # Ichimoku
-              tenkan = midpoint(high, low, 9)
-              kijun = midpoint(high, low, 26)
-
-              span_a = (tenkan + kijun) / 2
-              span_b = midpoint(high, low, 52)
-
-              # Cloud aligned with current candle
-              cloud_a = (
-                  ema(high, 1)[-27] + ema(low, 1)[-27]
-              ) / 2
-
-              old_high = high[:-26]
-              old_low = low[:-26]
-
-              cloud_b = (
-                  max(old_high[-52:]) +
-                  min(old_low[-52:])
-              ) / 2
-
-              price = close[-1]
+              tenkan, kijun, cloud_a, cloud_b = ichimoku(
+                  high, low
+              )
 
               cloud_top = max(cloud_a, cloud_b)
               cloud_bottom = min(cloud_a, cloud_b)
 
               if price > cloud_top:
-                  cloud_status = "Above Cloud - Bullish"
+                  cloud_status = "Bullish"
               elif price < cloud_bottom:
-                  cloud_status = "Below Cloud - Bearish"
+                  cloud_status = "Bearish"
               else:
-                  cloud_status = "Inside Cloud - Neutral"
+                  cloud_status = "Neutral"
 
-              trend = (
-                  "Bullish" if ema20[-1] > ema50[-1]
-                  else "Bearish"
-              )
+              # Fibonacci
+              fib = fibonacci(high, low, close)
 
-              long_trend = (
-                  "Bullish" if price > ema200[-1]
-                  else "Bearish"
-              )
+              # Pitchfork
+              fork = pitchfork(high, low, close)
 
-              macd_status = (
-                  "Positive" if macd[-1] > signal[-1]
-                  else "Negative"
-              )
+              # =========================
+              # COMBINED SCORE
+              # =========================
 
-              return f"""
+              score = 50
+
+              # EMA alignment
+              if e20[-1] > e50[-1]:
+                  score += 10
+              else:
+                  score -= 10
+
+              if price > e200[-1]:
+                  score += 10
+              else:
+                  score -= 10
+
+              # MACD
+              if macd[-1] > signal[-1]:
+                  score += 10
+              else:
+                  score -= 10
+
+              # RSI
+              if current_rsi > 55:
+                  score += 8
+              elif current_rsi < 45:
+                  score -= 8
+
+              # Ichimoku
+              if cloud_status == "Bullish":
+                  score += 12
+              elif cloud_status == "Bearish":
+                  score -= 12
+
+              # ADX strength
+              if adx > 25:
+                  if e20[-1] > e50[-1]:
+                      score += 5
+                  else:
+                      score -= 5
+
+              # OBV
+              if obv_status == "Rising":
+                  score += 5
+              elif obv_status == "Falling":
+                  score -= 5
+
+              score = max(0, min(100, score))
+
+              if score >= 70:
+                  decision = "BUY"
+              elif score <= 30:
+                  decision = "SELL"
+              else:
+                  decision = "NEUTRAL"
+
+              # =========================
+              # ATR RISK LEVELS
+              # =========================
+
+              if decision == "BUY":
+
+                  stop = price - 1.5 * atr
+                  target1 = price + 2 * atr
+                  target2 = price + 3 * atr
+
+              elif decision == "SELL":
+
+                  stop = price + 1.5 * atr
+                  target1 = price - 2 * atr
+                  target2 = price - 3 * atr
+
+              else:
+
+                  stop = None
+                  target1 = None
+                  target2 = None
+
+              # =========================
+              # REPORT
+              # =========================
+
+              report = f"""
+          =========================
           TIMEFRAME: {name}
+          =========================
 
           Price: {price:,.0f} Rial
 
           RSI: {current_rsi:.2f}
 
-          EMA20: {ema20[-1]:,.0f}
-          EMA50: {ema50[-1]:,.0f}
-          EMA200: {ema200[-1]:,.0f}
-
-          Short Trend: {trend}
-          Long Trend: {long_trend}
+          EMA20: {e20[-1]:,.0f}
+          EMA50: {e50[-1]:,.0f}
+          EMA200: {e200[-1]:,.0f}
 
           MACD: {macd[-1]:.2f}
           MACD Signal: {signal[-1]:.2f}
-          Momentum: {macd_status}
+
+          ADX: {adx:.2f}
+          ATR: {atr:,.0f}
+
+          Bollinger Bands:
+          Lower: {bb_lower:,.0f}
+          Middle: {bb_middle:,.0f}
+          Upper: {bb_upper:,.0f}
 
           Ichimoku:
           Tenkan: {tenkan:,.0f}
           Kijun: {kijun:,.0f}
           Cloud Top: {cloud_top:,.0f}
           Cloud Bottom: {cloud_bottom:,.0f}
+          Cloud: {cloud_status}
 
-          Cloud Status: {cloud_status}
+          OBV Trend: {obv_status}
+
+          Fibonacci:
+          {chr(10).join(
+              f"{k}: {v:,.0f}"
+              for k, v in fib.items()
+          ) if fib else "Not available"}
+
+          Andrews Pitchfork:
+          {(
+              f"Median: {fork[0]:,.0f}"
+              f" | Upper: {fork[1]:,.0f}"
+              f" | Lower: {fork[2]:,.0f}"
+          ) if fork else "Not available"}
+
+          =========================
+          FINAL SIGNAL: {decision}
+          SCORE: {score}/100
+          =========================
+
+          Stop Loss: {f'{stop:,.0f}' if stop else 'N/A'}
+          Target 1: {f'{target1:,.0f}' if target1 else 'N/A'}
+          Target 2: {f'{target2:,.0f}' if target2 else 'N/A'}
+
           """
 
+              return report
+
+          # =========================
+          # RUN ALL TIMEFRAMES
+          # =========================
+
           results = [
-              "BITCOIN ADVANCED TECHNICAL ANALYSIS"
+              "BITCOIN ADVANCED TECHNICAL ANALYSIS",
+              "Market: BTC / IRT",
+              "Closed candles only"
           ]
 
           for tf, name in [
@@ -217,9 +619,18 @@ jobs:
               (60, "1 HOUR"),
               (240, "4 HOURS")
           ]:
+
               results.append(analyze(tf, name))
 
           message = "\n".join(results)
+
+          # Telegram limit safety
+          if len(message) > 3900:
+              raise Exception("Telegram message too long")
+
+          # =========================
+          # SEND TELEGRAM
+          # =========================
 
           payload = urllib.parse.urlencode({
               "chat_id": os.environ["CHAT_ID"],
@@ -227,9 +638,9 @@ jobs:
           }).encode()
 
           req = urllib.request.Request(
-              "https://api.telegram.org/bot" +
-              os.environ["BOT_TOKEN"] +
-              "/sendMessage",
+              "https://api.telegram.org/bot"
+              + os.environ["BOT_TOKEN"]
+              + "/sendMessage",
               data=payload
           )
 
@@ -240,6 +651,6 @@ jobs:
               raise Exception("Telegram delivery failed")
 
           print(message)
-          print("Analysis completed successfully")
+          print("Advanced analysis completed successfully")
 
           PY
