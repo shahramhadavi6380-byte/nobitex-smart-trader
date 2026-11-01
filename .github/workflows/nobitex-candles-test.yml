@@ -1,0 +1,45 @@
+name: Nobitex Candles Test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  candles:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get Market Candles
+        run: |
+          TO=$(date +%s)
+
+          for TF in 15 60 240
+          do
+            echo "Checking timeframe: $TF"
+
+            RESPONSE=$(curl -fsS \
+            "https://apiv2.nobitex.ir/market/udf/history?symbol=BTCIRT&resolution=$TF&to=$TO&countback=5")
+
+            echo "$RESPONSE" | jq .
+
+            STATUS=$(echo "$RESPONSE" | jq -r '.s')
+
+            if [ "$STATUS" != "ok" ]; then
+              echo "Candle request failed for timeframe $TF"
+              exit 1
+            fi
+
+            COUNT=$(echo "$RESPONSE" | jq '.c | length')
+            CLOSE=$(echo "$RESPONSE" | jq -r '.c[-1]')
+
+            echo "Timeframe: $TF | Candles: $COUNT | Last Close: $CLOSE"
+          done
+
+      - name: Send Results to Telegram
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          CHAT_ID: ${{ secrets.CHAT_ID }}
+        run: |
+          curl -fsS -X POST \
+          "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
+          -d chat_id="$CHAT_ID" \
+          --data-urlencode "text=Bitcoin candle data received successfully for 15m, 1h and 4h timeframes."
