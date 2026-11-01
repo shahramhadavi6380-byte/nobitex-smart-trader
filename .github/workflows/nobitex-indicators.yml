@@ -1,0 +1,137 @@
+name: Nobitex Technical Analysis
+
+on:
+  workflow_dispatch:
+
+jobs:
+  analysis:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Calculate Indicators
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          CHAT_ID: ${{ secrets.CHAT_ID }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import urllib.request
+          import urllib.parse
+          import time
+
+          def get_candles(tf):
+              end = int(time.time())
+              start = end - tf * 60 * 150
+
+              params = urllib.parse.urlencode({
+                  "symbol": "BTCIRT",
+                  "resolution": str(tf),
+                  "from": start,
+                  "to": end,
+                  "countback": 100
+              })
+
+              url = "https://apiv2.nobitex.ir/market/udf/history?" + params
+
+              req = urllib.request.Request(
+                  url, headers={"User-Agent": "Mozilla/5.0"}
+              )
+
+              with urllib.request.urlopen(req, timeout=30) as r:
+                  data = json.loads(r.read())
+
+              if data.get("s") != "ok":
+                  raise Exception(f"Candle error: {data}")
+
+              return [float(x) for x in data["c"]]
+
+          def ema(values, period):
+              alpha = 2 / (period + 1)
+              result = [values[0]]
+              for x in values[1:]:
+                  result.append(alpha * x + (1-alpha) * result[-1])
+              return result
+
+          def rsi(values, period=14):
+              gains = []
+              losses = []
+
+              for i in range(1, len(values)):
+                  change = values[i] - values[i-1]
+                  gains.append(max(change, 0))
+                  losses.append(max(-change, 0))
+
+              avg_gain = sum(gains[:period]) / period
+              avg_loss = sum(losses[:period]) / period
+
+              for i in range(period, len(gains)):
+                  avg_gain = (avg_gain*(period-1)+gains[i])/period
+                  avg_loss = (avg_loss*(period-1)+losses[i])/period
+
+              if avg_loss == 0:
+                  return 100 if avg_gain > 0 else 50
+
+              return 100 - 100/(1+avg_gain/avg_loss)
+
+          results = ["📊 BTC Technical Analysis"]
+
+          for tf, name in [(15,"15m"),(60,"1h"),(240,"4h")]:
+              prices = get_candles(tf)
+
+              if len(prices) < 50:
+                  raise Exception(f"Not enough candles: {name}")
+
+              e20 = ema(prices,20)
+              e50 = ema(prices,50)
+
+              fast = ema(prices,12)
+              slow = ema(prices,26)
+
+              macd = [a-b for a,b in zip(fast,slow)]
+              signal = ema(macd,9)
+
+              current_rsi = rsi(prices)
+
+              trend = "Bullish 📈" if e20[-1] > e50[-1] else "Bearish 📉"
+
+              momentum = (
+                  "Positive" if macd[-1] > signal[-1]
+                  else "Negative"
+              )
+
+              results.append(
+                  f"\n⏱ {name}\n"
+                  f"Price: {prices[-1]:,.0f} Rial\n"
+                  f"RSI: {current_rsi:.2f}\n"
+                  f"EMA20: {e20[-1]:,.0f}\n"
+                  f"EMA50: {e50[-1]:,.0f}\n"
+                  f"Trend: {trend}\n"
+                  f"MACD: {macd[-1]:.2f}\n"
+                  f"Momentum: {momentum}"
+              )
+
+          message = "\n".join(results)
+
+          token = os.environ["BOT_TOKEN"]
+          chat_id = os.environ["CHAT_ID"]
+
+          payload = urllib.parse.urlencode({
+              "chat_id": chat_id,
+              "text": message
+          }).encode()
+
+          request = urllib.request.Request(
+              f"https://api.telegram.org/bot{token}/sendMessage",
+              data=payload
+          )
+
+          with urllib.request.urlopen(request, timeout=30) as response:
+              result = json.loads(response.read())
+
+          if not result.get("ok"):
+              raise Exception("Telegram delivery failed")
+
+          print(message)
+          print("Analysis sent successfully")
+          PY
