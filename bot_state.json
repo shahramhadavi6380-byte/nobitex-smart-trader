@@ -115,8 +115,8 @@
       "alerts": [
         "MESSAGE_SENT"
       ],
-      "last_price": 1219.219,
-      "last_checked": 1793657263,
+      "last_price": 1232.522,
+      "last_checked": 1793658924,
       "last_alert_time": 1793657265
     },
     {
@@ -232,8 +232,8 @@
       "created": 1793657253,
       "status": "WAITING",
       "alerts": [],
-      "last_price": 0.000448,
-      "last_checked": 1793657265
+      "last_price": 0.00045,
+      "last_checked": 1793658924
     },
     {
       "symbol": "PAXGUSDT",
@@ -342,8 +342,8 @@
       "created": 1793657262,
       "status": "WAITING",
       "alerts": [],
-      "last_price": 3947.0,
-      "last_checked": 1793657265
+      "last_price": 3945.0,
+      "last_checked": 1793658924
     },
     {
       "symbol": "TRXIRT",
@@ -455,8 +455,8 @@
       "alerts": [
         "MESSAGE_SENT"
       ],
-      "last_price": 868220.0,
-      "last_checked": 1793657265,
+      "last_price": 868970.0,
+      "last_checked": 1793658924,
       "last_alert_time": 1793657266
     },
     {
@@ -563,13 +563,17 @@
         }
       },
       "created": 1793657241,
-      "status": "WAITING",
-      "alerts": [],
-      "last_price": 3937.0,
-      "last_checked": 1793657266
+      "status": "ENTRY_ZONE_ALERTED",
+      "alerts": [
+        "MESSAGE_SENT"
+      ],
+      "last_price": 3938.1,
+      "last_checked": 1793658924,
+      "entry_alert_price": 3938.1,
+      "last_alert_time": 1793658926
     }
   ],
-  "last_monitor": 1793657266,
+  "last_monitor": 1793658926,
   "last_scan_markets": 460,
   "last_scan_candidates": 0,
   "last_scan_screened": 453,
