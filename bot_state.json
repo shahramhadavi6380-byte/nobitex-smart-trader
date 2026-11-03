@@ -114,8 +114,8 @@
       "alerts": [
         "MESSAGE_SENT"
       ],
-      "last_price": 1242.0,
-      "last_checked": 1793694821,
+      "last_price": 1238.003,
+      "last_checked": 1793697912,
       "last_alert_time": 1793691948
     },
     {
@@ -225,10 +225,13 @@
         }
       },
       "created": 1793691938,
-      "status": "WAITING",
-      "alerts": [],
-      "last_price": 0.000444,
-      "last_checked": 1793694821
+      "status": "MISSED",
+      "alerts": [
+        "MESSAGE_SENT"
+      ],
+      "last_price": 0.000457,
+      "last_checked": 1793697912,
+      "last_alert_time": 1793697914
     },
     {
       "symbol": "TRXIRT",
@@ -338,8 +341,8 @@
       "alerts": [
         "MESSAGE_SENT"
       ],
-      "last_price": 878690.0,
-      "last_checked": 1793694821,
+      "last_price": 883800.0,
+      "last_checked": 1793697914,
       "last_alert_time": 1793691949
     },
     {
@@ -453,13 +456,13 @@
       "alerts": [
         "MESSAGE_SENT"
       ],
-      "last_price": 1.25,
-      "last_checked": 1793694821,
+      "last_price": 1.25099,
+      "last_checked": 1793697914,
       "entry_alert_price": 1.25,
       "last_alert_time": 1793694822
     }
   ],
-  "last_monitor": 1793694822,
+  "last_monitor": 1793697914,
   "last_scan_markets": 460,
   "last_scan_candidates": 0,
   "last_scan_screened": 453,
