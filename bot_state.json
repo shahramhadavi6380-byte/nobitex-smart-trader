@@ -114,8 +114,8 @@
       "alerts": [
         "MESSAGE_SENT"
       ],
-      "last_price": 1210.0,
-      "last_checked": 1793672759,
+      "last_price": 1260.001,
+      "last_checked": 1793675301,
       "last_alert_time": 1793672760
     },
     {
@@ -231,8 +231,8 @@
       "created": 1793672737,
       "status": "WAITING",
       "alerts": [],
-      "last_price": 3943.9,
-      "last_checked": 1793672760
+      "last_price": 3935.3,
+      "last_checked": 1793675301
     },
     {
       "symbol": "HOTUSDT",
@@ -345,8 +345,8 @@
         "MESSAGE_SENT"
       ],
       "entry_alert_price": 0.000439,
-      "last_price": 0.000439,
-      "last_checked": 1793672760,
+      "last_price": 0.000459,
+      "last_checked": 1793675301,
       "last_alert_time": 1793672762
     },
     {
@@ -460,8 +460,8 @@
       "alerts": [
         "MESSAGE_SENT"
       ],
-      "last_price": 10739990000.0,
-      "last_checked": 1793672762,
+      "last_price": 10720029950.0,
+      "last_checked": 1793675301,
       "last_alert_time": 1793672763
     },
     {
@@ -575,12 +575,12 @@
       "alerts": [
         "MESSAGE_SENT"
       ],
-      "last_price": 872120.0,
-      "last_checked": 1793672763,
+      "last_price": 871870.0,
+      "last_checked": 1793675301,
       "last_alert_time": 1793672764
     }
   ],
-  "last_monitor": 1793672764,
+  "last_monitor": 1793675301,
   "last_scan_markets": 460,
   "last_scan_candidates": 0,
   "last_scan_screened": 453,
