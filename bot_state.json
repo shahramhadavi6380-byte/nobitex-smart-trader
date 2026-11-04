@@ -115,8 +115,8 @@
       "alerts": [
         "MESSAGE_SENT"
       ],
-      "last_price": 1414.089,
-      "last_checked": 1793755848,
+      "last_price": 1320.257,
+      "last_checked": 1793758461,
       "last_alert_time": 1793755849
     },
     {
@@ -226,10 +226,13 @@
         }
       },
       "created": 1793755830,
-      "status": "WAITING",
-      "alerts": [],
-      "last_price": 0.000522,
-      "last_checked": 1793755849
+      "status": "INVALIDATED",
+      "alerts": [
+        "MESSAGE_SENT"
+      ],
+      "last_price": 0.000483,
+      "last_checked": 1793758461,
+      "last_alert_time": 1793758462
     },
     {
       "symbol": "PUMPIRT",
@@ -341,8 +344,8 @@
       "alerts": [
         "MESSAGE_SENT"
       ],
-      "last_price": 11450.0,
-      "last_checked": 1793755849,
+      "last_price": 11440.0,
+      "last_checked": 1793758462,
       "last_alert_time": 1793755851
     },
     {
@@ -449,10 +452,13 @@
         }
       },
       "created": 1793755844,
-      "status": "WAITING",
-      "alerts": [],
-      "last_price": 4.8268,
-      "last_checked": 1793755851
+      "status": "INVALIDATED",
+      "alerts": [
+        "MESSAGE_SENT"
+      ],
+      "last_price": 4.7751,
+      "last_checked": 1793758462,
+      "last_alert_time": 1793758464
     },
     {
       "symbol": "PUMPUSDT",
@@ -563,12 +569,12 @@
       "alerts": [
         "MESSAGE_SENT"
       ],
-      "last_price": 0.004228,
-      "last_checked": 1793755851,
+      "last_price": 0.004205,
+      "last_checked": 1793758464,
       "last_alert_time": 1793755852
     }
   ],
-  "last_monitor": 1793755852,
+  "last_monitor": 1793758464,
   "last_scan_markets": 462,
   "last_scan_candidates": 0,
   "last_scan_screened": 453,
