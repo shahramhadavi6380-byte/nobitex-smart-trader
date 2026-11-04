@@ -117,8 +117,8 @@
       "alerts": [
         "MESSAGE_SENT"
       ],
-      "last_price": 213803874510.0,
-      "last_checked": 1793821778,
+      "last_price": 213350000000.0,
+      "last_checked": 1793824132,
       "last_alert_time": 1793821779
     },
     {
@@ -233,8 +233,8 @@
       "created": 1793821772,
       "status": "WAITING",
       "alerts": [],
-      "last_price": 7.517,
-      "last_checked": 1793821779
+      "last_price": 7.581,
+      "last_checked": 1793824132
     },
     {
       "symbol": "1M_PEPEUSDT",
@@ -346,8 +346,8 @@
       "created": 1793821763,
       "status": "WAITING",
       "alerts": [],
-      "last_price": 4.9521,
-      "last_checked": 1793821779
+      "last_price": 4.9662,
+      "last_checked": 1793824132
     },
     {
       "symbol": "XAUTIRT",
@@ -465,8 +465,8 @@
       "alerts": [
         "MESSAGE_SENT"
       ],
-      "last_price": 10829999660.0,
-      "last_checked": 1793821779,
+      "last_price": 10833998390.0,
+      "last_checked": 1793824132,
       "last_alert_time": 1793821781
     },
     {
@@ -586,12 +586,12 @@
         "MESSAGE_SENT"
       ],
       "entry_alert_price": 0.076592,
-      "last_price": 0.076592,
-      "last_checked": 1793821781,
+      "last_price": 0.0769627,
+      "last_checked": 1793824132,
       "last_alert_time": 1793821782
     }
   ],
-  "last_monitor": 1793821782,
+  "last_monitor": 1793824132,
   "last_scan_markets": 462,
   "last_scan_candidates": 0,
   "last_scan_screened": 455,
