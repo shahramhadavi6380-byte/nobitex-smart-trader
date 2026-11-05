@@ -119,8 +119,8 @@
       "alerts": [
         "MESSAGE_SENT"
       ],
-      "last_price": 10999999990.0,
-      "last_checked": 1793889457,
+      "last_price": 10952793440.0,
+      "last_checked": 1793892624,
       "last_alert_time": 1793886450
     },
     {
@@ -238,8 +238,8 @@
       "alerts": [
         "MESSAGE_SENT"
       ],
-      "last_price": 3460000000.0,
-      "last_checked": 1793889457,
+      "last_price": 3342000010.0,
+      "last_checked": 1793892624,
       "last_alert_time": 1793886452
     },
     {
@@ -355,8 +355,8 @@
       "alerts": [
         "MESSAGE_SENT"
       ],
-      "last_price": 1293.3,
-      "last_checked": 1793889457,
+      "last_price": 1238.19,
+      "last_checked": 1793892624,
       "last_alert_time": 1793886453
     },
     {
@@ -467,12 +467,14 @@
       "created": 1793886421,
       "status": "ENTRY_ZONE_ALERTED",
       "alerts": [
+        "MESSAGE_SENT",
+        "THEORETICAL_SL_TOUCHED",
         "MESSAGE_SENT"
       ],
       "entry_alert_price": 4098.7,
-      "last_price": 4103.1,
-      "last_checked": 1793889457,
-      "last_alert_time": 1793886455
+      "last_price": 4074.2,
+      "last_checked": 1793892624,
+      "last_alert_time": 1793892625
     },
     {
       "symbol": "BEAMXIRT",
@@ -582,12 +584,12 @@
       "alerts": [
         "MESSAGE_SENT"
       ],
-      "last_price": 12043.0,
-      "last_checked": 1793889457,
+      "last_price": 11600.0,
+      "last_checked": 1793892625,
       "last_alert_time": 1793886456
     }
   ],
-  "last_monitor": 1793889457,
+  "last_monitor": 1793892625,
   "last_scan_markets": 462,
   "last_scan_candidates": 0,
   "last_scan_screened": 455,
