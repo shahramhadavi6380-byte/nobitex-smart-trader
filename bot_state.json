@@ -117,8 +117,8 @@
       "alerts": [
         "MESSAGE_SENT"
       ],
-      "last_price": 11079900300.0,
-      "last_checked": 1793908541,
+      "last_price": 11079907750.0,
+      "last_checked": 1793910968,
       "last_alert_time": 1793902902
     },
     {
@@ -229,10 +229,14 @@
         }
       },
       "created": 1793902875,
-      "status": "WAITING",
-      "alerts": [],
-      "last_price": 4090.0,
-      "last_checked": 1793908541
+      "status": "ENTRY_ZONE_ALERTED",
+      "alerts": [
+        "MESSAGE_SENT"
+      ],
+      "last_price": 4081.0,
+      "last_checked": 1793910968,
+      "entry_alert_price": 4081.0,
+      "last_alert_time": 1793910969
     },
     {
       "symbol": "ZECIRT",
@@ -340,12 +344,12 @@
       "alerts": [
         "MESSAGE_SENT"
       ],
-      "last_price": 3401982290.0,
-      "last_checked": 1793908541,
+      "last_price": 3399989990.0,
+      "last_checked": 1793910969,
       "last_alert_time": 1793902903
     }
   ],
-  "last_monitor": 1793908541,
+  "last_monitor": 1793910969,
   "last_scan_markets": 462,
   "last_scan_candidates": 0,
   "last_scan_screened": 455,
