@@ -119,8 +119,8 @@
         "MESSAGE_SENT"
       ],
       "entry_alert_price": 1313.5,
-      "last_price": 1313.5,
-      "last_checked": 1793868582,
+      "last_price": 1318.9,
+      "last_checked": 1793871501,
       "last_alert_time": 1793868584
     },
     {
@@ -239,8 +239,8 @@
       "alerts": [
         "MESSAGE_SENT"
       ],
-      "last_price": 1.32,
-      "last_checked": 1793868584,
+      "last_price": 1.31527,
+      "last_checked": 1793871501,
       "last_alert_time": 1793868585
     },
     {
@@ -356,8 +356,8 @@
       "alerts": [
         "MESSAGE_SENT"
       ],
-      "last_price": 3500000010.0,
-      "last_checked": 1793868585,
+      "last_price": 3523989950.0,
+      "last_checked": 1793871501,
       "last_alert_time": 1793868587
     },
     {
@@ -475,8 +475,8 @@
       "alerts": [
         "MESSAGE_SENT"
       ],
-      "last_price": 3524800.0,
-      "last_checked": 1793868587,
+      "last_price": 3522900.0,
+      "last_checked": 1793871501,
       "last_alert_time": 1793868588
     },
     {
@@ -592,12 +592,12 @@
       "alerts": [
         "MESSAGE_SENT"
       ],
-      "last_price": 5.0242,
-      "last_checked": 1793868588,
+      "last_price": 5.0052,
+      "last_checked": 1793871501,
       "last_alert_time": 1793868590
     }
   ],
-  "last_monitor": 1793868590,
+  "last_monitor": 1793871501,
   "last_scan_markets": 462,
   "last_scan_candidates": 0,
   "last_scan_screened": 455,
