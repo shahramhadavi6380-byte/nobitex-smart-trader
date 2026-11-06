@@ -119,8 +119,8 @@
       "alerts": [
         "MESSAGE_SENT"
       ],
-      "last_price": 3663307870.0,
-      "last_checked": 1793988646,
+      "last_price": 3610000890.0,
+      "last_checked": 1793991356,
       "last_alert_time": 1793986504
     },
     {
@@ -241,8 +241,8 @@
       "alerts": [
         "MESSAGE_SENT"
       ],
-      "last_price": 1355.53,
-      "last_checked": 1793988646,
+      "last_price": 1342.25,
+      "last_checked": 1793991356,
       "last_alert_time": 1793986506
     },
     {
@@ -358,12 +358,14 @@
       "created": 1793986491,
       "status": "ENTRY_ZONE_ALERTED",
       "alerts": [
+        "MESSAGE_SENT",
+        "THEORETICAL_SL_TOUCHED",
         "MESSAGE_SENT"
       ],
       "entry_alert_price": 5.0718,
-      "last_price": 5.0702,
-      "last_checked": 1793988646,
-      "last_alert_time": 1793986507
+      "last_price": 5.0,
+      "last_checked": 1793991356,
+      "last_alert_time": 1793991358
     },
     {
       "symbol": "1M_PEPEIRT",
@@ -479,8 +481,8 @@
       "alerts": [
         "MESSAGE_SENT"
       ],
-      "last_price": 13643530.0,
-      "last_checked": 1793988646,
+      "last_price": 13574630.0,
+      "last_checked": 1793991358,
       "last_alert_time": 1793986509
     },
     {
@@ -593,12 +595,12 @@
       "alerts": [
         "MESSAGE_SENT"
       ],
-      "last_price": 10889999990.0,
-      "last_checked": 1793988646,
+      "last_price": 10920000000.0,
+      "last_checked": 1793991358,
       "last_alert_time": 1793986510
     }
   ],
-  "last_monitor": 1793988646,
+  "last_monitor": 1793991358,
   "last_scan_markets": 462,
   "last_scan_candidates": 0,
   "last_scan_screened": 455,
