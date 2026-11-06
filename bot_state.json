@@ -116,10 +116,13 @@
         }
       },
       "created": 1793971302,
-      "status": "WAITING",
-      "alerts": [],
-      "last_price": 5.0253,
-      "last_checked": 1793975085
+      "status": "MISSED",
+      "alerts": [
+        "MESSAGE_SENT"
+      ],
+      "last_price": 5.0788,
+      "last_checked": 1793977790,
+      "last_alert_time": 1793977791
     },
     {
       "symbol": "ZECIRT",
@@ -238,8 +241,8 @@
       "alerts": [
         "MESSAGE_SENT"
       ],
-      "last_price": 3562715540.0,
-      "last_checked": 1793975085,
+      "last_price": 3629872110.0,
+      "last_checked": 1793977791,
       "last_alert_time": 1793971314
     },
     {
@@ -359,8 +362,8 @@
       "alerts": [
         "MESSAGE_SENT"
       ],
-      "last_price": 13581500.0,
-      "last_checked": 1793975085,
+      "last_price": 13749340.0,
+      "last_checked": 1793977791,
       "last_alert_time": 1793971316
     },
     {
@@ -479,8 +482,8 @@
       "alerts": [
         "MESSAGE_SENT"
       ],
-      "last_price": 1315.9,
-      "last_checked": 1793975085,
+      "last_price": 1341.3,
+      "last_checked": 1793977791,
       "last_alert_time": 1793971317
     },
     {
@@ -592,12 +595,12 @@
       "alerts": [
         "MESSAGE_SENT"
       ],
-      "last_price": 10877777770.0,
-      "last_checked": 1793975085,
+      "last_price": 10858074310.0,
+      "last_checked": 1793977791,
       "last_alert_time": 1793971318
     }
   ],
-  "last_monitor": 1793975085,
+  "last_monitor": 1793977791,
   "last_scan_markets": 462,
   "last_scan_candidates": 0,
   "last_scan_screened": 455,
