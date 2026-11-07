@@ -10,8 +10,8 @@ import numpy as np
 import pandas as pd
 
 # ============================================================
-# Nobitex Smart Scanner v5
-# Smart Market Scanner + Telegram Alerts
+# Nobitex Smart Scanner v5.1
+# Smart Market Scanner + Ideal RSI Scanner + Telegram Alerts
 # No automatic trading
 # ============================================================
 
@@ -21,10 +21,11 @@ BOT_TOKEN = os.getenv("BOT_TOKEN", "").strip()
 CHAT_ID = os.getenv("CHAT_ID", "").strip()
 
 STATE_FILE = "bot_state.json"
-STATE_VERSION = 5
+STATE_VERSION = 6
 
 TOP_PER_QUOTE = 15
 MAX_WATCH = 5
+MAX_RSI_RESULTS = 5
 
 MIN_WATCH_SCORE = 60
 BUY_SETUP_SCORE = 80
@@ -42,9 +43,16 @@ PRICE_MISMATCH_THRESHOLD = 0.15
 
 TELEGRAM_CHUNK_SIZE = 3800
 
-# حداقل امتیاز برای نمایش ارز در بخش جدید گزارش
 TIMEFRAME_HIGHLIGHT_SCORE = 70
 
+# RSI ideal ranges
+RSI_RANGES = {
+    "15m": (40, 60),
+    "1h": (45, 60),
+    "4h": (45, 65)
+}
+
+RSI_MIN_MATCHES = 2
 
 # ============================================================
 # LOGGING
@@ -60,10 +68,9 @@ log = logging.getLogger("NobitexScanner")
 S = requests.Session()
 
 S.headers.update({
-    "User-Agent": "NobitexSmartScanner/5.0",
+    "User-Agent": "NobitexSmartScanner/5.1",
     "Accept": "application/json"
 })
-
 
 # ============================================================
 # BASIC FUNCTIONS
@@ -1066,6 +1073,407 @@ def analyze(df):
 
 
 # ============================================================
+# IDEAL RSI SCANNER
+# بررسی تمام بازارهای دارای داده معتبر 1h
+# ============================================================
+
+def is_rsi_ideal(timeframe, rsi):
+
+    low, high = RSI_RANGES[timeframe]
+
+    return (
+        math.isfinite(rsi)
+        and low <= rsi <= high
+    )
+
+
+def is_non_bearish_trend(analysis):
+
+    if not analysis:
+        return False
+
+    return (
+
+        analysis["close"] >= analysis["ema50"]
+
+        and analysis["ema20"] >= analysis["ema50"]
+
+        and analysis["macd"] >= analysis["macd_signal"]
+
+    )
+
+
+def deduplicate_rsi_results(results):
+
+    grouped = {}
+
+    for item in results:
+
+        base = symbol_base(
+            item["symbol"]
+        )
+
+        if base not in grouped:
+
+            grouped[base] = item
+
+            continue
+
+        current = grouped[base]
+
+        if (
+            item["quote"] == "rls"
+            and current["quote"] != "rls"
+        ):
+
+            grouped[base] = item
+
+        elif (
+            item["quote"] == current["quote"]
+            and item["screen_score"] > current["screen_score"]
+        ):
+
+            grouped[base] = item
+
+    output = list(grouped.values())
+
+    output.sort(
+        key=lambda item: (
+            item["match_count"],
+            item["screen_score"]
+        ),
+        reverse=True
+    )
+
+    return output
+
+
+def scan_ideal_rsi(screened):
+
+    log.info(
+        "Starting ideal RSI scan for %s screened markets",
+        len(screened)
+    )
+
+    results = []
+
+    scanned = 0
+    failures = 0
+    bearish_removed = 0
+
+    for index, market in enumerate(
+        screened,
+        1
+    ):
+
+        symbol = market["symbol"]
+
+        log.info(
+            "RSI scan %s/%s: %s",
+            index,
+            len(screened),
+            symbol
+        )
+
+        try:
+
+            # 1h analysis is cached from screening.
+            a1 = market.get("_screen_analysis")
+
+            if not a1:
+
+                failures += 1
+                continue
+
+            # 15m candles
+            df15 = candles(
+                symbol,
+                15
+            )
+
+            time.sleep(REQUEST_PAUSE)
+
+            if df15 is None:
+
+                failures += 1
+                continue
+
+            a15 = analyze(df15)
+
+            if a15 is None:
+
+                failures += 1
+                continue
+
+            # 4h candles
+            df4 = candles(
+                symbol,
+                240
+            )
+
+            time.sleep(REQUEST_PAUSE)
+
+            if df4 is None:
+
+                failures += 1
+                continue
+
+            a4 = analyze(df4)
+
+            if a4 is None:
+
+                failures += 1
+                continue
+
+            scanned += 1
+
+            # Remove bearish markets.
+            trend_1h = is_non_bearish_trend(a1)
+
+            trend_4h = is_non_bearish_trend(a4)
+
+            if not (trend_1h and trend_4h):
+
+                bearish_removed += 1
+                continue
+
+            rsi_values = {
+                "15m": a15["rsi"],
+                "1h": a1["rsi"],
+                "4h": a4["rsi"]
+            }
+
+            matches = {}
+
+            for timeframe, value in rsi_values.items():
+
+                matches[timeframe] = is_rsi_ideal(
+                    timeframe,
+                    value
+                )
+
+            match_count = sum(
+                1 for matched in matches.values()
+                if matched
+            )
+
+            if match_count < RSI_MIN_MATCHES:
+                continue
+
+            results.append({
+
+                "symbol": symbol,
+
+                "quote": market["quote"],
+
+                "screen_score": market.get(
+                    "screen_score",
+                    0
+                ),
+
+                "rsi": rsi_values,
+
+                "matches": matches,
+
+                "match_count": match_count,
+
+                "trend_1h": trend_1h,
+
+                "trend_4h": trend_4h
+
+            })
+
+        except Exception as error:
+
+            failures += 1
+
+            log.warning(
+                "RSI scan error %s: %s",
+                symbol,
+                error
+            )
+
+    results = deduplicate_rsi_results(
+        results
+    )
+
+    top_five = results[:MAX_RSI_RESULTS]
+
+    stats = {
+
+        "screened": len(screened),
+
+        "scanned": scanned,
+
+        "failures": failures,
+
+        "bearish_removed": bearish_removed,
+
+        "qualified": len(results),
+
+        "top_count": len(top_five)
+
+    }
+
+    log.info(
+        "RSI scan completed: %s",
+        stats
+    )
+
+    return top_five, stats
+
+
+# ============================================================
+# IDEAL RSI TELEGRAM SECTION
+# ============================================================
+
+def ideal_rsi_section(top_five, stats):
+
+    labels = {
+
+        "15m": "۱۵ دقیقه",
+
+        "1h": "۱ ساعت",
+
+        "4h": "۴ ساعت"
+
+    }
+
+    lines = [
+
+        "",
+
+        line_separator(),
+
+        "⭐ <b>پنج ارز برتر دارای RSI ایده‌آل برای بررسی</b>",
+
+        "",
+
+        "📌 محدوده‌های ایده‌آل RSI:",
+
+        "• ۱۵ دقیقه: ۴۰ تا ۶۰",
+
+        "• یک ساعت: ۴۵ تا ۶۰",
+
+        "• چهار ساعت: ۴۵ تا ۶۵",
+
+        "",
+
+        "📌 حداقل دو تایم‌فریم از سه تایم‌فریم باید منطبق باشند.",
+
+        "📈 روند یک‌ساعته و چهارساعته نیز باید نزولی نباشد.",
+
+        "",
+
+        line_separator(),
+
+        f"🔎 بازارهای بررسی‌شده: <b>{stats['scanned']}</b>",
+
+        f"⚠️ داده نامعتبر یا خطای دریافت: <b>{stats['failures']}</b>",
+
+        f"📉 حذف‌شده به دلیل روند نزولی: <b>{stats['bearish_removed']}</b>",
+
+        f"✅ ارزهای واجد شرایط قبل از انتخاب پنج مورد: <b>{stats['qualified']}</b>",
+
+        ""
+
+    ]
+
+    if not top_five:
+
+        lines.extend([
+
+            "❌ در این اسکن ارزی با حداقل دو RSI منطبق و روند غیرنزولی پیدا نشد.",
+
+            line_separator()
+
+        ])
+
+        return lines
+
+    for index, item in enumerate(
+        top_five,
+        1
+    ):
+
+        lines.append(
+            f"🏅 <b>رتبه {index} | {esc(item['symbol'])}</b>"
+        )
+
+        lines.append(
+            f"💱 {quote_label(item['quote'])}"
+        )
+
+        lines.append(
+            f"⭐ تعداد RSI منطبق: <b>{item['match_count']} از ۳</b>"
+        )
+
+        if item["match_count"] == 3:
+
+            lines.append(
+                "🟢 اولویت: بسیار بالا از نظر تطابق RSI"
+            )
+
+        else:
+
+            lines.append(
+                "🟡 اولویت: قابل بررسی؛ دو تایم‌فریم منطبق"
+            )
+
+        lines.append("")
+
+        for timeframe in ("15m", "1h", "4h"):
+
+            value = item["rsi"][timeframe]
+
+            low, high = RSI_RANGES[timeframe]
+
+            mark = (
+                "✅"
+                if item["matches"][timeframe]
+                else "❌"
+            )
+
+            lines.append(
+
+                f"{mark} {labels[timeframe]}: "
+
+                f"<b>{value:.1f}</b> "
+
+                f"(محدوده ایده‌آل: {low} تا {high})"
+
+            )
+
+        lines.append("")
+
+        lines.append(
+            f"📊 امتیاز غربالگری یک‌ساعته: <b>{item['screen_score']:.1f}</b>"
+        )
+
+        lines.append(
+            "📈 وضعیت روند: غیرنزولی در ۱ساعت و ۴ساعت"
+        )
+
+        lines.append(
+            line_separator()
+        )
+
+    lines.extend([
+
+        "",
+
+        "⚠️ RSI ایده‌آل به‌تنهایی سیگنال خرید نیست.",
+
+        "قبل از ورود، امتیاز تحلیل تکنیکال، حجم، اسپرد و وضعیت کلی بازار را بررسی کن.",
+
+        line_separator()
+
+    ])
+
+    return lines
+
+
+# ============================================================
 # SPREAD
 # ============================================================
 
@@ -1442,7 +1850,6 @@ def deduplicate_candidates(candidates):
 
 # ============================================================
 # TIMEFRAME SCORES >= 70
-# نمایش تمام ارزهای واجد شرایط در سه تایم‌فریم
 # ============================================================
 
 def timeframe_score_section(candidates):
@@ -1592,10 +1999,7 @@ def candidate_card(index, item):
 
         "",
 
-        (
-            "📊 امتیاز تایم‌فریم‌ها "
-            f"۱۵دقیقه / ۱ساعت / ۴ساعت:"
-        ),
+        "📊 امتیاز تایم‌فریم‌ها ۱۵دقیقه / ۱ساعت / ۴ساعت:",
 
         (
             f"<code>{item['scores']['15m']:.1f} / "
@@ -1667,6 +2071,7 @@ def run_full_scan(state):
         )
 
     # STEP 1: SCREEN ALL MARKETS
+    # 1h analysis is saved for RSI scanner.
 
     screened = []
 
@@ -1701,6 +2106,8 @@ def run_full_scan(state):
                         result["score"]
                     )
 
+                    market["_screen_analysis"] = result
+
                     screened.append(market)
 
                 else:
@@ -1729,7 +2136,15 @@ def run_full_scan(state):
             "هیچ بازاری در مرحله غربالگری داده معتبر نداشت"
         )
 
-    # STEP 2: TOP VOLUME PER QUOTE
+    # STEP 2: IDEAL RSI SCAN
+    # ALL screened markets, not only deep-analysis markets.
+
+    top_rsi, rsi_stats = scan_ideal_rsi(
+        screened
+    )
+
+    # STEP 3: TOP VOLUME PER QUOTE
+    # Deep analysis remains limited to top volume markets.
 
     selected = []
 
@@ -1754,7 +2169,7 @@ def run_full_scan(state):
             group[:TOP_PER_QUOTE]
         )
 
-    # STEP 3: DEEP ANALYSIS
+    # STEP 4: DEEP ANALYSIS
 
     candidates = []
 
@@ -1808,7 +2223,7 @@ def run_full_scan(state):
             "تحلیل عمیق هیچ نماد معتبری تولید نکرد"
         )
 
-    # STEP 4: REMOVE DUPLICATES
+    # STEP 5: REMOVE DUPLICATES
 
     candidates = deduplicate_candidates(
         candidates
@@ -1819,7 +2234,7 @@ def run_full_scan(state):
         reverse=True
     )
 
-    # TOP FIVE
+    # TOP FIVE TECHNICAL ANALYSIS
 
     top_five = candidates[:MAX_WATCH]
 
@@ -1833,7 +2248,7 @@ def run_full_scan(state):
 
     ]
 
-    # STATE UPDATE ONLY AFTER SUCCESSFUL SCAN
+    # STATE UPDATE
 
     state["watchlist"] = watchlist
 
@@ -1853,11 +2268,17 @@ def run_full_scan(state):
 
     state["top_results"] = top_five
 
+    state["top_rsi_results"] = top_rsi
+
+    state["rsi_stats"] = rsi_stats
+
+    # ========================================================
     # TELEGRAM REPORT
+    # ========================================================
 
     message = [
 
-        "🚀 <b>گزارش اسکن هوشمند نوبیتکس | نسخه ۵</b>",
+        "🚀 <b>گزارش اسکن هوشمند نوبیتکس | نسخه ۵.۱</b>",
 
         line_separator(),
 
@@ -1871,13 +2292,15 @@ def run_full_scan(state):
 
         f"✅ تحلیل عمیق موفق: <b>{len(candidates)}</b>",
 
-        f"⚠️ تحلیل ناموفق: <b>{failures_deep}</b>",
+        f"⚠️ خطای غربالگری: <b>{failures_screen}</b>",
+
+        f"⚠️ خطای تحلیل عمیق: <b>{failures_deep}</b>",
 
         f"👀 نمادهای واردشده به پایش: <b>{len(watchlist)}</b>",
 
         "",
 
-        "🏆 <b>پنج رتبه برتر این اسکن:</b>",
+        "🏆 <b>پنج رتبه برتر تحلیل تکنیکال:</b>",
 
         ""
 
@@ -1910,13 +2333,19 @@ def run_full_scan(state):
 
         ])
 
-    # ========================================================
-    # NEW SECTION:
-    # ALL ANALYZED COINS WITH TIMEFRAME SCORE >= 70
-    # ========================================================
+    # TIMEFRAME SCORES
 
     message.extend(
         timeframe_score_section(candidates)
+    )
+
+    # IDEAL RSI TOP FIVE
+
+    message.extend(
+        ideal_rsi_section(
+            top_rsi,
+            rsi_stats
+        )
     )
 
     message.extend([
@@ -1928,6 +2357,8 @@ def run_full_scan(state):
         "⚠️ <b>نکات مهم:</b>",
 
         "• امتیاز، احتمال موفقیت معامله نیست.",
+
+        "• RSI ایده‌آل به‌تنهایی سیگنال خرید نیست.",
 
         "• محدوده‌ها و اهداف، محاسبات تحلیلی هستند.",
 
@@ -2292,6 +2723,10 @@ def main():
 
     if old_version < STATE_VERSION:
 
+        log.info(
+            "State version changed. Resetting old scan schedule."
+        )
+
         state["last_scan"] = 0
 
         state["watchlist"] = []
@@ -2322,7 +2757,7 @@ def main():
     log.info("================================")
 
     log.info(
-        "Nobitex Smart Scanner v5"
+        "Nobitex Smart Scanner v5.1"
     )
 
     log.info(
