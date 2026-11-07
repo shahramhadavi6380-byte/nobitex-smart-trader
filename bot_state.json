@@ -119,8 +119,8 @@
       "alerts": [
         "MESSAGE_SENT"
       ],
-      "last_price": 5390.0,
-      "last_checked": 1794052110,
+      "last_price": 5420.0,
+      "last_checked": 1794053817,
       "last_alert_time": 1794052111
     },
     {
@@ -239,8 +239,8 @@
       "alerts": [
         "MESSAGE_SENT"
       ],
-      "last_price": 0.002017,
-      "last_checked": 1794052111,
+      "last_price": 0.00201,
+      "last_checked": 1794053817,
       "last_alert_time": 1794052113
     },
     {
@@ -348,8 +348,8 @@
       "created": 1794052089,
       "status": "WAITING",
       "alerts": [],
-      "last_price": 4054.4,
-      "last_checked": 1794052113
+      "last_price": 4053.2,
+      "last_checked": 1794053817
     },
     {
       "symbol": "ZECUSDT",
@@ -454,11 +454,11 @@
       "created": 1794052075,
       "status": "WAITING",
       "alerts": [],
-      "last_price": 1307.64,
-      "last_checked": 1794052113
+      "last_price": 1294.9,
+      "last_checked": 1794053817
     }
   ],
-  "last_monitor": 1794052113,
+  "last_monitor": 1794053817,
   "last_scan_markets": 462,
   "last_scan_candidates": 0,
   "last_scan_screened": 455,
