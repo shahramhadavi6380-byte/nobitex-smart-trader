@@ -117,8 +117,8 @@
       "alerts": [
         "MESSAGE_SENT"
       ],
-      "last_price": 10936346700.0,
-      "last_checked": 1794007928,
+      "last_price": 10919626180.0,
+      "last_checked": 1794010039,
       "last_alert_time": 1794001881
     },
     {
@@ -234,8 +234,8 @@
       "alerts": [
         "MESSAGE_SENT"
       ],
-      "last_price": 3564536510.0,
-      "last_checked": 1794007928,
+      "last_price": 3589999970.0,
+      "last_checked": 1794010039,
       "last_alert_time": 1794001883
     },
     {
@@ -349,8 +349,8 @@
       "created": 1794001843,
       "status": "WAITING",
       "alerts": [],
-      "last_price": 1318.0,
-      "last_checked": 1794007928
+      "last_price": 1323.0,
+      "last_checked": 1794010039
     },
     {
       "symbol": "ONEUSDT",
@@ -470,8 +470,8 @@
       "alerts": [
         "MESSAGE_SENT"
       ],
-      "last_price": 0.001818,
-      "last_checked": 1794007928,
+      "last_price": 0.001899,
+      "last_checked": 1794010039,
       "last_alert_time": 1794001884
     },
     {
@@ -592,12 +592,12 @@
       "alerts": [
         "MESSAGE_SENT"
       ],
-      "last_price": 4930.0,
-      "last_checked": 1794007928,
+      "last_price": 4950.0,
+      "last_checked": 1794010039,
       "last_alert_time": 1794001886
     }
   ],
-  "last_monitor": 1794007928,
+  "last_monitor": 1794010039,
   "last_scan_markets": 462,
   "last_scan_candidates": 0,
   "last_scan_screened": 455,
