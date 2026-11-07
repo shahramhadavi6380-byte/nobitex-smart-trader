@@ -38,12 +38,12 @@ REQUEST_PAUSE = 0.45
 
 HTTP_TIMEOUT = 25
 
-# اگر اختلاف قیمت فعلی با قیمت زمان اسکن بیشتر از این مقدار باشد
-# هشدارهای معاملاتی آن نماد متوقف می‌شوند.
 PRICE_MISMATCH_THRESHOLD = 0.15
 
-# حداکثر طول امن پیام تلگرام
 TELEGRAM_CHUNK_SIZE = 3800
+
+# حداقل امتیاز برای نمایش ارز در بخش جدید گزارش
+TIMEFRAME_HIGHLIGHT_SCORE = 70
 
 
 # ============================================================
@@ -158,8 +158,6 @@ def telegram(message):
         f"bot{BOT_TOKEN}/sendMessage"
     )
 
-    # تقسیم پیام بر اساس خطوط کامل
-    # تمام تگ‌های HTML در هر خط بسته می‌شوند.
     lines = message.split("\n")
 
     chunks = []
@@ -564,8 +562,6 @@ def candles(symbol, resolution):
             .drop_duplicates("time")
         )
 
-        # حذف کندل در حال تشکیل
-
         df = df[
             df.time + resolution * 60
             <= current_time
@@ -612,8 +608,6 @@ def indicators(df):
     low = d.low
     volume = d.volume
 
-    # EMA
-
     d["ema20"] = close.ewm(
         span=20,
         adjust=False
@@ -628,8 +622,6 @@ def indicators(df):
         span=200,
         adjust=False
     ).mean()
-
-    # RSI
 
     delta = close.diff()
 
@@ -668,8 +660,6 @@ def indicators(df):
         "rsi"
     ] = 50
 
-    # MACD
-
     ema12 = close.ewm(
         span=12,
         adjust=False
@@ -690,8 +680,6 @@ def indicators(df):
     d["macd_hist"] = (
         d.macd - d.macd_signal
     )
-
-    # ATR / ADX
 
     previous_close = close.shift(1)
 
@@ -777,8 +765,6 @@ def indicators(df):
         min_periods=14
     ).mean()
 
-    # BOLLINGER
-
     middle = close.rolling(20).mean()
 
     deviation = close.rolling(20).std()
@@ -792,8 +778,6 @@ def indicators(df):
     d["bb_lower"] = (
         middle - 2 * deviation
     )
-
-    # ICHIMOKU
 
     tenkan = (
         high.rolling(9).max()
@@ -817,8 +801,6 @@ def indicators(df):
         high.rolling(52).max()
         + low.rolling(52).min()
     ) / 2
-
-    # OBV
 
     direction = np.sign(
         close.diff()
@@ -900,8 +882,6 @@ def analyze(df):
 
     reasons = []
 
-    # PRICE / EMA20
-
     if values["close"] > values["ema20"]:
 
         score += 5
@@ -913,8 +893,6 @@ def analyze(df):
     else:
 
         score -= 5
-
-    # EMA20 / EMA50
 
     if values["ema20"] > values["ema50"]:
 
@@ -928,8 +906,6 @@ def analyze(df):
 
         score -= 8
 
-    # EMA50 / EMA200
-
     if values["ema50"] > values["ema200"]:
 
         score += 8
@@ -942,8 +918,6 @@ def analyze(df):
 
         score -= 8
 
-    # MACD
-
     if values["macd"] > values["macd_signal"]:
 
         score += 8
@@ -955,8 +929,6 @@ def analyze(df):
     else:
 
         score -= 6
-
-    # RSI
 
     rsi = values["rsi"]
 
@@ -988,8 +960,6 @@ def analyze(df):
             "مومنتوم ضعیف"
         )
 
-    # ADX
-
     if math.isfinite(values["adx"]):
 
         if (
@@ -1009,8 +979,6 @@ def analyze(df):
         ):
 
             score -= 5
-
-    # ICHIMOKU
 
     if (
         math.isfinite(values["cloud_a"])
@@ -1039,8 +1007,6 @@ def analyze(df):
 
             score -= 4
 
-    # OBV
-
     if math.isfinite(values["obv_ma"]):
 
         if values["obv"] > values["obv_ma"]:
@@ -1065,8 +1031,6 @@ def analyze(df):
     values["last_candle_time"] = int(
         df.time.iloc[-1]
     )
-
-    # FIBONACCI
 
     recent = df.tail(120)
 
@@ -1216,8 +1180,6 @@ def build_candidate(market, analyses):
         )
     )
 
-    # ENTRY ZONE
-
     atr15 = a15["atr"]
 
     entry_low = (
@@ -1239,8 +1201,6 @@ def build_candidate(market, analyses):
         entry_low + entry_high
     ) / 2
 
-    # STOP LOSS
-
     risk_distance = max(
         1.5 * atr15,
         0.8 * a1["atr"]
@@ -1257,8 +1217,6 @@ def build_candidate(market, analyses):
     target2 = (
         reference_price + 3 * risk_distance
     )
-
-    # TREND CONFIRMATION
 
     trend_alignment = (
 
@@ -1458,9 +1416,6 @@ def deduplicate_candidates(candidates):
 
         current = grouped[base]
 
-        # اگر یکی IRT و دیگری USDT باشد،
-        # نسخه IRT اولویت دارد.
-
         if (
             item["quote"] == "rls"
             and current["quote"] != "rls"
@@ -1483,6 +1438,112 @@ def deduplicate_candidates(candidates):
     )
 
     return result
+
+
+# ============================================================
+# TIMEFRAME SCORES >= 70
+# نمایش تمام ارزهای واجد شرایط در سه تایم‌فریم
+# ============================================================
+
+def timeframe_score_section(candidates):
+
+    labels = {
+        "15m": "۱۵ دقیقه",
+        "1h": "۱ ساعت",
+        "4h": "۴ ساعت"
+    }
+
+    qualifying = []
+
+    for item in candidates:
+
+        scores = item.get("scores", {})
+
+        matched = []
+
+        for timeframe in ("15m", "1h", "4h"):
+
+            score = num(
+                scores.get(timeframe)
+            )
+
+            if (
+                math.isfinite(score)
+                and score >= TIMEFRAME_HIGHLIGHT_SCORE
+            ):
+
+                matched.append(
+                    (timeframe, score)
+                )
+
+        if matched:
+
+            qualifying.append(
+                (item, matched)
+            )
+
+    qualifying.sort(
+        key=lambda row: max(
+            score for _, score in row[1]
+        ),
+        reverse=True
+    )
+
+    lines = [
+
+        "",
+
+        line_separator(),
+
+        "⭐ <b>ارزهای دارای امتیاز ۷۰ و بالاتر در تایم‌فریم‌ها</b>",
+
+        "📌 فقط تایم‌فریم‌هایی نمایش داده می‌شوند که امتیازشان حداقل ۷۰ باشد.",
+
+        ""
+
+    ]
+
+    if not qualifying:
+
+        lines.append(
+            "در این اسکن هیچ ارزی در هیچ تایم‌فریمی امتیاز ۷۰ یا بالاتر نگرفت."
+        )
+
+        lines.append(
+            line_separator()
+        )
+
+        return lines
+
+    total_scores = 0
+
+    for item, matched in qualifying:
+
+        lines.append(
+            f"🟢 <b>{esc(item['symbol'])}</b>"
+        )
+
+        for timeframe, score in matched:
+
+            lines.append(
+                f"   ⏱ {labels[timeframe]}: <b>{score:.1f}/100</b>"
+            )
+
+            total_scores += 1
+
+        lines.append("")
+
+    lines.extend([
+
+        f"📊 تعداد ارزهای واجد شرایط: <b>{len(qualifying)}</b>",
+
+        f"⭐ تعداد امتیازهای واجد شرایط: <b>{total_scores}</b>",
+
+        line_separator()
+
+    ])
+
+    return lines
 
 
 # ============================================================
@@ -1849,6 +1910,15 @@ def run_full_scan(state):
 
         ])
 
+    # ========================================================
+    # NEW SECTION:
+    # ALL ANALYZED COINS WITH TIMEFRAME SCORE >= 70
+    # ========================================================
+
+    message.extend(
+        timeframe_score_section(candidates)
+    )
+
     message.extend([
 
         "",
@@ -2003,9 +2073,6 @@ def monitor(state):
             item["last_checked"] = now_ts()
 
             continue
-
-        # اگر قبلاً به علت ناهماهنگی متوقف شده باشد،
-        # به صورت خودکار دوباره فعال نمی‌شود.
 
         if item.get("price_mismatch", False):
 
@@ -2230,8 +2297,6 @@ def main():
         state["watchlist"] = []
 
         state["last_monitor"] = 0
-
-    # GitHub Actions event
 
     event_name = (
 
