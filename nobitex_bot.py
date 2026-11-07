@@ -3,13 +3,14 @@ import json
 import time
 import math
 import logging
+import html
 
 import requests
 import numpy as np
 import pandas as pd
 
 # ============================================================
-# Nobitex Smart Scanner v4
+# Nobitex Smart Scanner v5
 # Smart Market Scanner + Telegram Alerts
 # No automatic trading
 # ============================================================
@@ -20,7 +21,7 @@ BOT_TOKEN = os.getenv("BOT_TOKEN", "").strip()
 CHAT_ID = os.getenv("CHAT_ID", "").strip()
 
 STATE_FILE = "bot_state.json"
-STATE_VERSION = 4
+STATE_VERSION = 5
 
 TOP_PER_QUOTE = 15
 MAX_WATCH = 5
@@ -37,6 +38,14 @@ REQUEST_PAUSE = 0.45
 
 HTTP_TIMEOUT = 25
 
+# اگر اختلاف قیمت فعلی با قیمت زمان اسکن بیشتر از این مقدار باشد
+# هشدارهای معاملاتی آن نماد متوقف می‌شوند.
+PRICE_MISMATCH_THRESHOLD = 0.15
+
+# حداکثر طول امن پیام تلگرام
+TELEGRAM_CHUNK_SIZE = 3800
+
+
 # ============================================================
 # LOGGING
 # ============================================================
@@ -51,7 +60,7 @@ log = logging.getLogger("NobitexScanner")
 S = requests.Session()
 
 S.headers.update({
-    "User-Agent": "NobitexSmartScanner/4.0",
+    "User-Agent": "NobitexSmartScanner/5.0",
     "Accept": "application/json"
 })
 
@@ -65,7 +74,6 @@ def now_ts():
 
 
 def num(value, default=float("nan")):
-
     try:
         value = float(value)
 
@@ -79,7 +87,6 @@ def num(value, default=float("nan")):
 
 
 def fmt(value):
-
     value = num(value)
 
     if not math.isfinite(value):
@@ -92,6 +99,47 @@ def fmt(value):
         return f"{value:,.5f}"
 
     return f"{value:.8f}"
+
+
+def esc(value):
+    return html.escape(str(value), quote=True)
+
+
+def score_bar(score):
+    score = max(0, min(100, num(score, 0)))
+
+    filled = int(round(score / 10))
+
+    return "🟩" * filled + "⬜" * (10 - filled)
+
+
+def score_label(score):
+
+    if score >= 80:
+        return "قوی"
+
+    if score >= 70:
+        return "نسبتاً قوی"
+
+    if score >= 60:
+        return "متوسط"
+
+    return "ضعیف"
+
+
+def quote_label(quote):
+
+    if quote == "rls":
+        return "بازار تومانی (IRT)"
+
+    if quote == "usdt":
+        return "بازار تتری (USDT)"
+
+    return quote
+
+
+def line_separator():
+    return "━━━━━━━━━━━━━━━━━━━━"
 
 
 # ============================================================
@@ -110,13 +158,44 @@ def telegram(message):
         f"bot{BOT_TOKEN}/sendMessage"
     )
 
-    for start in range(0, len(message), 3800):
+    # تقسیم پیام بر اساس خطوط کامل
+    # تمام تگ‌های HTML در هر خط بسته می‌شوند.
+    lines = message.split("\n")
+
+    chunks = []
+    current = ""
+
+    for line in lines:
+
+        candidate = (
+            current + "\n" + line
+            if current
+            else line
+        )
+
+        if len(candidate) <= TELEGRAM_CHUNK_SIZE:
+
+            current = candidate
+
+        else:
+
+            if current:
+                chunks.append(current)
+
+            current = line
+
+    if current:
+        chunks.append(current)
+
+    for chunk in chunks:
 
         response = requests.post(
             url,
             data={
                 "chat_id": CHAT_ID,
-                "text": message[start:start + 3800]
+                "text": chunk,
+                "parse_mode": "HTML",
+                "disable_web_page_preview": True
             },
             timeout=HTTP_TIMEOUT
         )
@@ -126,6 +205,7 @@ def telegram(message):
         result = response.json()
 
         if not result.get("ok"):
+
             raise RuntimeError(
                 "Telegram error: " + str(result)
             )
@@ -216,7 +296,10 @@ def load_state():
 
     except Exception as error:
 
-        log.warning("State load error: %s", error)
+        log.warning(
+            "State load error: %s",
+            error
+        )
 
     return {
         "version": STATE_VERSION,
@@ -274,6 +357,19 @@ def symbol_to_market_key(symbol):
         )
 
     return ""
+
+
+def symbol_base(symbol):
+
+    symbol = symbol.upper()
+
+    if symbol.endswith("IRT"):
+        return symbol[:-3]
+
+    if symbol.endswith("USDT"):
+        return symbol[:-4]
+
+    return symbol
 
 
 # ============================================================
@@ -1288,7 +1384,9 @@ def build_candidate(market, analyses):
 
         "status": "WAITING",
 
-        "alerts": []
+        "alerts": [],
+
+        "price_mismatch": False
 
     }
 
@@ -1335,6 +1433,155 @@ def analyze_market(market):
         ),
         None
     )
+
+
+# ============================================================
+# REMOVE DUPLICATE ASSETS
+# Prefer IRT when both IRT and USDT exist.
+# ============================================================
+
+def deduplicate_candidates(candidates):
+
+    grouped = {}
+
+    for item in candidates:
+
+        base = symbol_base(
+            item["symbol"]
+        )
+
+        if base not in grouped:
+
+            grouped[base] = item
+
+            continue
+
+        current = grouped[base]
+
+        # اگر یکی IRT و دیگری USDT باشد،
+        # نسخه IRT اولویت دارد.
+
+        if (
+            item["quote"] == "rls"
+            and current["quote"] != "rls"
+        ):
+
+            grouped[base] = item
+
+        elif (
+            item["quote"] == current["quote"]
+            and item["rank"] > current["rank"]
+        ):
+
+            grouped[base] = item
+
+    result = list(grouped.values())
+
+    result.sort(
+        key=lambda item: item["rank"],
+        reverse=True
+    )
+
+    return result
+
+
+# ============================================================
+# TELEGRAM REPORT CARD
+# ============================================================
+
+def candidate_card(index, item):
+
+    symbol = esc(item["symbol"])
+
+    score = item["score"]
+
+    spread_text = (
+
+        f"{item['spread']:.3f}%"
+
+        if item["spread"] is not None
+
+        else "نامشخص"
+
+    )
+
+    reasons = item["reasons"]["4h"][:3]
+
+    reasons_text = (
+        "، ".join(esc(x) for x in reasons)
+        if reasons
+        else "مورد برجسته‌ای ثبت نشد"
+    )
+
+    lines = [
+
+        line_separator(),
+
+        f"🏅 <b>رتبه {index} | {symbol}</b>",
+
+        f"💱 <i>{quote_label(item['quote'])}</i>",
+
+        "",
+
+        f"⭐ <b>امتیاز: {score}/100</b> — {score_label(score)}",
+
+        f"<code>{score_bar(score)}</code>",
+
+        f"📌 ارزیابی: <b>{esc(item['classification'])}</b>",
+
+        "",
+
+        (
+            "📊 امتیاز تایم‌فریم‌ها "
+            f"۱۵دقیقه / ۱ساعت / ۴ساعت:"
+        ),
+
+        (
+            f"<code>{item['scores']['15m']:.1f} / "
+            f"{item['scores']['1h']:.1f} / "
+            f"{item['scores']['4h']:.1f}</code>"
+        ),
+
+        "",
+
+        f"💰 قیمت آخرین کندل: <b>{fmt(item['price_at_scan'])}</b>",
+
+        f"↔️ اسپرد: {spread_text}",
+
+        "",
+
+        "🎯 <b>سطوح محاسباتی:</b>",
+
+        (
+            f"🟢 محدوده ورود: "
+            f"<code>{fmt(item['entry_low'])}</code>"
+            f" تا "
+            f"<code>{fmt(item['entry_high'])}</code>"
+        ),
+
+        f"🔴 حد ضرر: <code>{fmt(item['sl'])}</code>",
+
+        f"🎯 هدف اول: <code>{fmt(item['tp1'])}</code>",
+
+        f"🏆 هدف دوم: <code>{fmt(item['tp2'])}</code>",
+
+        "",
+
+        (
+            "📈 RSI یک‌ساعته / چهارساعته: "
+            f"{fmt(item['rsi']['1h'])} / "
+            f"{fmt(item['rsi']['4h'])}"
+        ),
+
+        "",
+
+        f"💡 دلایل مثبت ۴ساعته: {reasons_text}",
+
+        line_separator()
+
+    ]
+
+    return lines
 
 
 # ============================================================
@@ -1500,6 +1747,12 @@ def run_full_scan(state):
             "تحلیل عمیق هیچ نماد معتبری تولید نکرد"
         )
 
+    # STEP 4: REMOVE DUPLICATES
+
+    candidates = deduplicate_candidates(
+        candidates
+    )
+
     candidates.sort(
         key=lambda item: item["rank"],
         reverse=True
@@ -1543,100 +1796,46 @@ def run_full_scan(state):
 
     message = [
 
-        "🔎 گزارش اسکن هوشمند نوبیتکس | نسخه ۴",
+        "🚀 <b>گزارش اسکن هوشمند نوبیتکس | نسخه ۵</b>",
+
+        line_separator(),
 
         "",
 
-        f"بازارهای فعال: {len(markets)}",
+        f"🌐 بازارهای فعال: <b>{len(markets)}</b>",
 
-        f"بازارهای دارای داده یک‌ساعته: {len(screened)}",
+        f"📊 بازارهای دارای داده یک‌ساعته: <b>{len(screened)}</b>",
 
-        f"بازارهای تحلیل عمیق: {len(selected)}",
+        f"🔬 بازارهای تحلیل عمیق: <b>{len(selected)}</b>",
 
-        f"تحلیل عمیق موفق: {len(candidates)}",
+        f"✅ تحلیل عمیق موفق: <b>{len(candidates)}</b>",
 
-        f"تحلیل ناموفق: {failures_deep}",
+        f"⚠️ تحلیل ناموفق: <b>{failures_deep}</b>",
 
-        f"نمادهای واردشده به پایش: {len(watchlist)}",
+        f"👀 نمادهای واردشده به پایش: <b>{len(watchlist)}</b>",
 
         "",
 
-        "امتیاز، احتمال موفقیت نیست.",
+        "🏆 <b>پنج رتبه برتر این اسکن:</b>",
 
-        "ربات سفارش خرید یا فروش ثبت نمی‌کند."
+        ""
 
     ]
 
-    message.append(
-        "\n🏆 پنج رتبه برتر این اسکن:"
-    )
+    if not top_five:
+
+        message.append(
+            "در این اسکن نماد مناسبی پیدا نشد."
+        )
 
     for index, item in enumerate(
         top_five,
         1
     ):
 
-        spread_text = (
-
-            f"{item['spread']:.3f}%"
-
-            if item["spread"] is not None
-
-            else "نامشخص"
-
+        message.extend(
+            candidate_card(index, item)
         )
-
-        message.extend([
-
-            "",
-
-            f"{index}) {item['symbol']} | امتیاز {item['score']}/100",
-
-            f"ارزیابی: {item['classification']}",
-
-            (
-                "امتیاز ۱۵د/۱س/۴س: "
-                f"{item['scores']['15m']}/"
-                f"{item['scores']['1h']}/"
-                f"{item['scores']['4h']}"
-            ),
-
-            (
-                f"قیمت آخرین کندل: "
-                f"{fmt(item['price_at_scan'])}"
-            ),
-
-            f"اسپرد: {spread_text}",
-
-            (
-                "محدوده ورود احتمالی: "
-                f"{fmt(item['entry_low'])} "
-                f"تا {fmt(item['entry_high'])}"
-            ),
-
-            f"حد ضرر محاسباتی: {fmt(item['sl'])}",
-
-            (
-                f"هدف ۱: {fmt(item['tp1'])} | "
-                f"هدف ۲: {fmt(item['tp2'])}"
-            ),
-
-            (
-                "RSI یک‌ساعته/چهارساعته: "
-                f"{fmt(item['rsi']['1h'])}/"
-                f"{fmt(item['rsi']['4h'])}"
-            )
-
-        ])
-
-        reasons = item["reasons"]["4h"][:3]
-
-        if reasons:
-
-            message.append(
-                "دلایل مثبت ۴ساعته: "
-                + "، ".join(reasons)
-            )
 
     if not watchlist:
 
@@ -1644,7 +1843,7 @@ def run_full_scan(state):
 
             "",
 
-            "هیچ نمادی امتیاز حداقل ۶۰ نگرفت.",
+            "⛔ هیچ نمادی امتیاز حداقل ۶۰ نگرفت.",
 
             "فعلاً هیچ نمادی وارد فهرست پایش نشد."
 
@@ -1654,9 +1853,21 @@ def run_full_scan(state):
 
         "",
 
-        "«آماده بررسی» دستور خرید قطعی نیست.",
+        line_separator(),
 
-        "قبل از معامله واقعی، بک‌تست و حساب آزمایشی ضروری است."
+        "⚠️ <b>نکات مهم:</b>",
+
+        "• امتیاز، احتمال موفقیت معامله نیست.",
+
+        "• محدوده‌ها و اهداف، محاسبات تحلیلی هستند.",
+
+        "• «آماده بررسی» دستور خرید قطعی نیست.",
+
+        "• ربات سفارش خرید یا فروش ثبت نمی‌کند.",
+
+        "• قبل از معامله واقعی، بک‌تست و حساب آزمایشی ضروری است.",
+
+        line_separator()
 
     ])
 
@@ -1667,6 +1878,32 @@ def run_full_scan(state):
     log.info(
         "Scan completed successfully"
     )
+
+
+# ============================================================
+# PRICE CONSISTENCY CHECK
+# ============================================================
+
+def check_price_consistency(item, current_price):
+
+    scan_price = num(
+        item.get("price_at_scan"),
+        0
+    )
+
+    if scan_price <= 0 or current_price <= 0:
+
+        return False, None
+
+    difference = abs(
+        current_price - scan_price
+    ) / scan_price
+
+    if difference > PRICE_MISMATCH_THRESHOLD:
+
+        return True, difference
+
+    return False, difference
 
 
 # ============================================================
@@ -1714,6 +1951,66 @@ def monitor(state):
         if price <= 0:
             continue
 
+        # PRICE MISMATCH PROTECTION
+
+        mismatch, difference = check_price_consistency(
+            item,
+            price
+        )
+
+        if mismatch:
+
+            if not item.get(
+                "price_mismatch",
+                False
+            ):
+
+                item["price_mismatch"] = True
+
+                item["status"] = "DATA_MISMATCH"
+
+                percent = difference * 100
+
+                alert = (
+
+                    f"🚨 <b>هشدار ناهماهنگی قیمت | {esc(symbol)}</b>\n\n"
+
+                    f"قیمت زمان اسکن: <code>{fmt(item['price_at_scan'])}</code>\n"
+
+                    f"قیمت فعلی API: <code>{fmt(price)}</code>\n"
+
+                    f"اختلاف: <b>{percent:.1f}%</b>\n\n"
+
+                    "⛔ برای جلوگیری از هشدار اشتباه، پایش معاملاتی این نماد متوقف شد.\n"
+
+                    "تا بررسی واحد قیمت و داده‌های نوبیتکس، به این نماد اتکا نکن."
+
+                )
+
+                try:
+
+                    telegram(alert)
+
+                except Exception as error:
+
+                    log.error(
+                        "Mismatch Telegram error: %s",
+                        error
+                    )
+
+            item["last_price"] = price
+
+            item["last_checked"] = now_ts()
+
+            continue
+
+        # اگر قبلاً به علت ناهماهنگی متوقف شده باشد،
+        # به صورت خودکار دوباره فعال نمی‌شود.
+
+        if item.get("price_mismatch", False):
+
+            continue
+
         status = item.get(
             "status",
             "WAITING"
@@ -1751,11 +2048,11 @@ def monitor(state):
 
                 alert = (
 
-                    f"⛔ فرصت {symbol} نامعتبر شد.\n"
+                    f"⛔ <b>فرصت {esc(symbol)} نامعتبر شد.</b>\n\n"
 
-                    f"قیمت فعلی: {fmt(price)}\n"
+                    f"قیمت فعلی: <code>{fmt(price)}</code>\n"
 
-                    f"حد ابطال محاسباتی: {fmt(stop)}"
+                    f"حد ابطال محاسباتی: <code>{fmt(stop)}</code>"
 
                 )
 
@@ -1769,19 +2066,21 @@ def monitor(state):
 
                 alert = (
 
-                    f"🟡 هشدار محدوده ورود {symbol}\n\n"
+                    f"🟡 <b>قیمت {esc(symbol)} وارد محدوده موردنظر شد.</b>\n\n"
 
-                    f"قیمت فعلی: {fmt(price)}\n"
+                    f"قیمت فعلی: <code>{fmt(price)}</code>\n"
 
-                    f"محدوده ورود: {fmt(low)} تا {fmt(high)}\n"
+                    f"محدوده محاسباتی: <code>{fmt(low)}</code> تا <code>{fmt(high)}</code>\n"
 
-                    f"حد ضرر محاسباتی: {fmt(stop)}\n"
+                    f"حد ضرر محاسباتی: <code>{fmt(stop)}</code>\n"
 
-                    f"هدف اول: {fmt(target1)}\n"
+                    f"هدف اول: <code>{fmt(target1)}</code>\n"
 
-                    f"هدف دوم: {fmt(target2)}\n\n"
+                    f"هدف دوم: <code>{fmt(target2)}</code>\n\n"
 
-                    "این هشدار به معنی خرید واقعی نیست."
+                    "⚠️ این هشدار به معنی توصیه یا دستور خرید نیست.\n"
+
+                    "قبل از هر تصمیم، وضعیت بازار و حجم معاملات را بررسی کن."
 
                 )
 
@@ -1796,11 +2095,11 @@ def monitor(state):
 
                 alert = (
 
-                    f"⚠️ محدوده ورود {symbol} فعلاً از دسترس خارج شد.\n"
+                    f"⚠️ <b>محدوده مناسب {esc(symbol)} فعلاً از دسترس خارج شد.</b>\n\n"
 
-                    f"قیمت فعلی: {fmt(price)}\n"
+                    f"قیمت فعلی: <code>{fmt(price)}</code>\n\n"
 
-                    "دنبال قیمت نرو."
+                    "دنبال قیمت نرو؛ منتظر موقعیت جدید بمان."
 
                 )
 
@@ -1828,9 +2127,9 @@ def monitor(state):
 
                 alert = (
 
-                    f"🔴 قیمت {symbol} به حد ضرر محاسباتی رسید.\n"
+                    f"🔴 <b>قیمت {esc(symbol)} به حد ضرر محاسباتی رسید.</b>\n\n"
 
-                    f"قیمت: {fmt(price)}\n\n"
+                    f"قیمت: <code>{fmt(price)}</code>\n\n"
 
                     "این گزارش معامله واقعی شما نیست."
 
@@ -1851,9 +2150,9 @@ def monitor(state):
 
                 alert = (
 
-                    f"🎯 قیمت {symbol} به هدف دوم رسید.\n"
+                    f"🏆 <b>قیمت {esc(symbol)} به هدف دوم رسید.</b>\n\n"
 
-                    f"قیمت: {fmt(price)}\n\n"
+                    f"قیمت: <code>{fmt(price)}</code>\n\n"
 
                     "این صرفاً حرکت قیمت است."
 
@@ -1874,9 +2173,9 @@ def monitor(state):
 
                 alert = (
 
-                    f"🎯 قیمت {symbol} به هدف اول رسید.\n"
+                    f"🎯 <b>قیمت {esc(symbol)} به هدف اول رسید.</b>\n\n"
 
-                    f"قیمت: {fmt(price)}\n\n"
+                    f"قیمت: <code>{fmt(price)}</code>\n\n"
 
                     "این صرفاً حرکت قیمت است."
 
@@ -1891,11 +2190,6 @@ def monitor(state):
             try:
 
                 telegram(alert)
-
-                item.setdefault(
-                    "alerts",
-                    []
-                ).append("MESSAGE_SENT")
 
                 item["last_alert_time"] = now_ts()
 
@@ -1963,7 +2257,7 @@ def main():
     log.info("================================")
 
     log.info(
-        "Nobitex Smart Scanner v4"
+        "Nobitex Smart Scanner v5"
     )
 
     log.info(
@@ -1997,8 +2291,8 @@ def main():
             try:
 
                 telegram(
-                    "⚠️ خطا در اسکن کامل نوبیتکس:\n"
-                    + str(error)[:2500]
+                    "⚠️ <b>خطا در اسکن کامل نوبیتکس:</b>\n"
+                    + esc(str(error)[:2500])
                 )
 
             except Exception as telegram_error:
@@ -2023,8 +2317,8 @@ def main():
         try:
 
             telegram(
-                "⚠️ خطا در پایش قیمت‌ها:\n"
-                + str(error)[:2500]
+                "⚠️ <b>خطا در پایش قیمت‌ها:</b>\n"
+                + esc(str(error)[:2500])
             )
 
         except Exception:
