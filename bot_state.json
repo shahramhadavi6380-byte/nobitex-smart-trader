@@ -55,11 +55,11 @@
       "status": "DATA_MISMATCH",
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 13.701,
-      "last_checked": 1794114113
+      "last_price": 13.203,
+      "last_checked": 1794116803
     }
   ],
-  "last_monitor": 1794114113,
+  "last_monitor": 1794116803,
   "last_scan_markets": 462,
   "last_scan_candidates": 0,
   "last_scan_screened": 455,
