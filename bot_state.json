@@ -63,8 +63,8 @@
       "status": "DATA_MISMATCH",
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 5860.0,
-      "last_checked": 1794123442
+      "last_price": 6020.0,
+      "last_checked": 1794126274
     },
     {
       "symbol": "METIRT",
@@ -124,8 +124,8 @@
       "status": "DATA_MISMATCH",
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 828800.0,
-      "last_checked": 1794123442
+      "last_price": 823290.0,
+      "last_checked": 1794126274
     },
     {
       "symbol": "HMSTRIRT",
@@ -187,8 +187,8 @@
       "status": "DATA_MISMATCH",
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 375.87,
-      "last_checked": 1794123442
+      "last_price": 379.116,
+      "last_checked": 1794126274
     },
     {
       "symbol": "1M_PEPEUSDT",
@@ -242,12 +242,12 @@
       "status": "MISSED",
       "alerts": [],
       "price_mismatch": false,
-      "last_price": 4.8912,
-      "last_checked": 1794123442,
+      "last_price": 4.9102,
+      "last_checked": 1794126274,
       "last_alert_time": 1794120629
     }
   ],
-  "last_monitor": 1794123442,
+  "last_monitor": 1794126274,
   "last_scan_markets": 462,
   "last_scan_candidates": 0,
   "last_scan_screened": 455,
