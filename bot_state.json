@@ -64,8 +64,8 @@
       "status": "DATA_MISMATCH",
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 5550.0,
-      "last_checked": 1794095787
+      "last_price": 5560.0,
+      "last_checked": 1794097993
     },
     {
       "symbol": "HMSTRIRT",
@@ -129,8 +129,8 @@
       "status": "DATA_MISMATCH",
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 354.222,
-      "last_checked": 1794095787
+      "last_price": 353.309,
+      "last_checked": 1794097993
     },
     {
       "symbol": "XIRT",
@@ -188,11 +188,11 @@
       "status": "DATA_MISMATCH",
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 13.141,
-      "last_checked": 1794095787
+      "last_price": 13.344,
+      "last_checked": 1794097993
     }
   ],
-  "last_monitor": 1794095787,
+  "last_monitor": 1794097993,
   "last_scan_markets": 462,
   "last_scan_candidates": 0,
   "last_scan_screened": 455,
