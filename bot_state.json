@@ -58,8 +58,8 @@
       "status": "DATA_MISMATCH",
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 364.725,
-      "last_checked": 1794140382
+      "last_price": 355.007,
+      "last_checked": 1794143673
     },
     {
       "symbol": "ONEIRT",
@@ -115,11 +115,11 @@
       "status": "DATA_MISMATCH",
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 5150.0,
-      "last_checked": 1794140382
+      "last_price": 5110.0,
+      "last_checked": 1794143673
     }
   ],
-  "last_monitor": 1794140382,
+  "last_monitor": 1794143673,
   "last_scan_markets": 462,
   "last_scan_candidates": 0,
   "last_scan_screened": 455,
