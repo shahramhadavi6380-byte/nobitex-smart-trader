@@ -67,8 +67,8 @@
       ],
       "price_mismatch": false,
       "entry_alert_price": 5.0592,
-      "last_price": 4.8779,
-      "last_checked": 1794175062,
+      "last_price": 4.962,
+      "last_checked": 1794176812,
       "last_alert_time": 1794175063
     },
     {
@@ -134,8 +134,8 @@
       "status": "DATA_MISMATCH",
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 4430.51,
-      "last_checked": 1794175063
+      "last_price": 4429.07,
+      "last_checked": 1794176812
     },
     {
       "symbol": "HOTIRT",
@@ -192,8 +192,8 @@
       "status": "DATA_MISMATCH",
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 1047.0,
-      "last_checked": 1794175063
+      "last_price": 1059.99,
+      "last_checked": 1794176812
     },
     {
       "symbol": "XAUTIRT",
@@ -249,8 +249,8 @@
       "status": "DATA_MISMATCH",
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 10800000000.0,
-      "last_checked": 1794175063
+      "last_price": 10749999900.0,
+      "last_checked": 1794176812
     },
     {
       "symbol": "TRXIRT",
@@ -310,11 +310,11 @@
       "status": "DATA_MISMATCH",
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 855050.0,
-      "last_checked": 1794175063
+      "last_price": 846110.0,
+      "last_checked": 1794176812
     }
   ],
-  "last_monitor": 1794175063,
+  "last_monitor": 1794176812,
   "last_scan_markets": 462,
   "last_scan_candidates": 0,
   "last_scan_screened": 455,
