@@ -71,8 +71,8 @@
       "alerts": [],
       "price_mismatch": false,
       "entry_alert_price": 5.1,
-      "last_price": 5.1,
-      "last_checked": 1794218503,
+      "last_price": 5.0546,
+      "last_checked": 1794221204,
       "last_alert_time": 1794218504
     },
     {
@@ -144,8 +144,8 @@
       "created": 1794218455,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 4679.1,
-      "last_checked": 1794218506
+      "last_price": 4837.09,
+      "last_checked": 1794221204
     },
     {
       "symbol": "XAUTIRT",
@@ -212,11 +212,11 @@
       "created": 1794218451,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 10920000000.0,
-      "last_checked": 1794218507
+      "last_price": 10810000040.0,
+      "last_checked": 1794221204
     }
   ],
-  "last_monitor": 1794218507,
+  "last_monitor": 1794221204,
   "last_scan_markets": 462,
   "last_scan_candidates": 0,
   "last_scan_screened": 455,
