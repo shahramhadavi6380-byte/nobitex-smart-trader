@@ -63,8 +63,8 @@
       "status": "MISSED",
       "alerts": [],
       "price_mismatch": false,
-      "last_price": 5.09,
-      "last_checked": 1794195539,
+      "last_price": 5.06,
+      "last_checked": 1794199248,
       "last_alert_time": 1794187107
     },
     {
@@ -123,11 +123,11 @@
       "status": "DATA_MISMATCH",
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 4570.53,
-      "last_checked": 1794195539
+      "last_price": 4708.0,
+      "last_checked": 1794199248
     }
   ],
-  "last_monitor": 1794195539,
+  "last_monitor": 1794199248,
   "last_scan_markets": 462,
   "last_scan_candidates": 0,
   "last_scan_screened": 455,
