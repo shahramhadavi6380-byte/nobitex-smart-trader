@@ -9,9 +9,11 @@ import requests
 import numpy as np
 import pandas as pd
 
+
 # ============================================================
-# Nobitex Smart Scanner v5.2
-# Smart Market Scanner + RSI Rising From 40 + Telegram Alerts
+# NOBITEX SMART TRADER V6
+# Trend + Support/Resistance + Volume + EMA/RSI/MACD
+# Multi-timeframe analysis
 # No automatic trading
 # ============================================================
 
@@ -21,11 +23,14 @@ BOT_TOKEN = os.getenv("BOT_TOKEN", "").strip()
 CHAT_ID = os.getenv("CHAT_ID", "").strip()
 
 STATE_FILE = "bot_state.json"
-STATE_VERSION = 7
+STATE_VERSION = 8
+
+# ------------------------------------------------------------
+# SCANNER SETTINGS
+# ------------------------------------------------------------
 
 TOP_PER_QUOTE = 15
 MAX_WATCH = 5
-MAX_RSI_RESULTS = 5
 
 MIN_WATCH_SCORE = 60
 BUY_SETUP_SCORE = 80
@@ -35,23 +40,62 @@ SCAN_EVERY_SECONDS = 4 * 60 * 60
 TIMEFRAMES = (15, 60, 240)
 
 CANDLE_COUNT = 350
+
 REQUEST_PAUSE = 0.45
 HTTP_TIMEOUT = 25
 
-PRICE_MISMATCH_THRESHOLD = 0.15
 TELEGRAM_CHUNK_SIZE = 3800
-TIMEFRAME_HIGHLIGHT_SCORE = 70
 
-# RSI conditions
-RSI_RANGES = {
-    "15m": (40, 60),
-    "1h": (40, 60),
-    "4h": (40, 65)
-}
+PRICE_MISMATCH_THRESHOLD = 0.15
 
-RSI_MIN_MATCHES = 2
-RSI_CROSS_LOOKBACK = 6
-RSI_RISING_STEPS = 3
+# ------------------------------------------------------------
+# STRATEGY SETTINGS
+# ------------------------------------------------------------
+
+VOLUME_LOOKBACK = 20
+
+MIN_VOLUME_RATIO = 1.5
+
+MAX_SPREAD_PCT = 1.2
+
+MIN_RISK_REWARD = 2.0
+
+MAX_STOP_DISTANCE_PCT = 8.0
+
+# تخمین محافظه‌کارانه هزینه رفت و برگشت معامله
+# این عدد باید در صورت مشخص بودن کارمزد واقعی تنظیم شود.
+ESTIMATED_ROUND_TRIP_COST_PCT = 0.50
+
+SUPPORT_RESISTANCE_LOOKBACK = 100
+
+PIVOT_LEFT = 3
+PIVOT_RIGHT = 3
+
+SUPPORT_RESISTANCE_TOLERANCE = 0.008
+
+# ------------------------------------------------------------
+# SCORING WEIGHTS
+# ------------------------------------------------------------
+
+# مجموع امتیاز خام = 85
+
+WEIGHT_TREND = 25
+WEIGHT_SR = 25
+WEIGHT_VOLUME = 20
+
+WEIGHT_EMA = 5
+WEIGHT_RSI = 5
+WEIGHT_MACD = 5
+
+RAW_MAX_SCORE = (
+    WEIGHT_TREND
+    + WEIGHT_SR
+    + WEIGHT_VOLUME
+    + WEIGHT_EMA
+    + WEIGHT_RSI
+    + WEIGHT_MACD
+)
+
 
 # ============================================================
 # LOGGING
@@ -62,12 +106,12 @@ logging.basicConfig(
     format="%(asctime)s | %(levelname)s | %(message)s"
 )
 
-log = logging.getLogger("NobitexScanner")
+log = logging.getLogger("NobitexSmartTrader")
 
 S = requests.Session()
 
 S.headers.update({
-    "User-Agent": "NobitexSmartScanner/5.2",
+    "User-Agent": "NobitexSmartTrader/6.0",
     "Accept": "application/json"
 })
 
@@ -81,14 +125,28 @@ def now_ts():
 
 
 def num(value, default=float("nan")):
+
     try:
+
         value = float(value)
-        return value if math.isfinite(value) else default
+
+        if math.isfinite(value):
+            return value
+
+        return default
+
     except Exception:
+
         return default
 
 
+def clamp(value, low, high):
+
+    return max(low, min(high, value))
+
+
 def fmt(value):
+
     value = num(value)
 
     if not math.isfinite(value):
@@ -104,35 +162,60 @@ def fmt(value):
 
 
 def esc(value):
-    return html.escape(str(value), quote=True)
+
+    return html.escape(
+        str(value),
+        quote=True
+    )
+
+
+def line_separator():
+
+    return "━━━━━━━━━━━━━━━━━━━━"
 
 
 def score_bar(score):
-    score = max(0, min(100, num(score, 0)))
+
+    score = clamp(
+        num(score, 0),
+        0,
+        100
+    )
+
     filled = int(round(score / 10))
-    return "🟩" * filled + "⬜" * (10 - filled)
+
+    return (
+        "🟩" * filled
+        + "⬜" * (10 - filled)
+    )
 
 
 def score_label(score):
-    if score >= 80:
+
+    if score >= 85:
+        return "بسیار قوی"
+
+    if score >= 75:
         return "قوی"
-    if score >= 70:
-        return "نسبتاً قوی"
+
+    if score >= 65:
+        return "نسبتاً مناسب"
+
     if score >= 60:
         return "متوسط"
+
     return "ضعیف"
 
 
 def quote_label(quote):
+
     if quote == "rls":
-        return "بازار تومانی (IRT)"
+        return "بازار تومانی"
+
     if quote == "usdt":
-        return "بازار تتری (USDT)"
+        return "بازار تتری"
+
     return quote
-
-
-def line_separator():
-    return "━━━━━━━━━━━━━━━━━━━━"
 
 
 # ============================================================
@@ -142,23 +225,38 @@ def line_separator():
 def telegram(message):
 
     if not BOT_TOKEN or not CHAT_ID:
-        raise RuntimeError("BOT_TOKEN or CHAT_ID is missing")
 
-    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+        raise RuntimeError(
+            "BOT_TOKEN or CHAT_ID is missing"
+        )
+
+    url = (
+        f"https://api.telegram.org/"
+        f"bot{BOT_TOKEN}/sendMessage"
+    )
 
     lines = message.split("\n")
+
     chunks = []
     current = ""
 
     for line in lines:
 
-        candidate = current + "\n" + line if current else line
+        candidate = (
+            current + "\n" + line
+            if current
+            else line
+        )
 
         if len(candidate) <= TELEGRAM_CHUNK_SIZE:
+
             current = candidate
+
         else:
+
             if current:
                 chunks.append(current)
+
             current = line
 
     if current:
@@ -182,7 +280,10 @@ def telegram(message):
         result = response.json()
 
         if not result.get("ok"):
-            raise RuntimeError("Telegram error: " + str(result))
+
+            raise RuntimeError(
+                "Telegram error: " + str(result)
+            )
 
         time.sleep(1)
 
@@ -205,7 +306,10 @@ def api_get(path, params=None, attempts=4):
 
             if response.status_code == 429:
 
-                wait = min(30, 3 * (attempt + 1))
+                wait = min(
+                    30,
+                    3 * (attempt + 1)
+                )
 
                 log.warning(
                     "Rate limited. Waiting %s seconds",
@@ -213,6 +317,7 @@ def api_get(path, params=None, attempts=4):
                 )
 
                 time.sleep(wait)
+
                 continue
 
             response.raise_for_status()
@@ -223,7 +328,11 @@ def api_get(path, params=None, attempts=4):
                 isinstance(payload, dict)
                 and payload.get("status") == "failed"
             ):
-                time.sleep(2 * (attempt + 1))
+
+                time.sleep(
+                    2 * (attempt + 1)
+                )
+
                 continue
 
             return payload
@@ -236,7 +345,9 @@ def api_get(path, params=None, attempts=4):
                 error
             )
 
-            time.sleep(2 * (attempt + 1))
+            time.sleep(
+                2 * (attempt + 1)
+            )
 
     return None
 
@@ -249,7 +360,11 @@ def load_state():
 
     try:
 
-        with open(STATE_FILE, encoding="utf-8") as file:
+        with open(
+            STATE_FILE,
+            encoding="utf-8"
+        ) as file:
+
             state = json.load(file)
 
         if isinstance(state, dict):
@@ -262,13 +377,21 @@ def load_state():
 
     except Exception as error:
 
-        log.warning("State load error: %s", error)
+        log.warning(
+            "State load error: %s",
+            error
+        )
 
     return {
+
         "version": STATE_VERSION,
+
         "last_scan": 0,
+
         "watchlist": [],
+
         "last_monitor": 0
+
     }
 
 
@@ -278,7 +401,11 @@ def save_state(state):
 
     temporary_file = STATE_FILE + ".tmp"
 
-    with open(temporary_file, "w", encoding="utf-8") as file:
+    with open(
+        temporary_file,
+        "w",
+        encoding="utf-8"
+    ) as file:
 
         json.dump(
             state,
@@ -287,7 +414,10 @@ def save_state(state):
             indent=2
         )
 
-    os.replace(temporary_file, STATE_FILE)
+    os.replace(
+        temporary_file,
+        STATE_FILE
+    )
 
 
 # ============================================================
@@ -299,10 +429,18 @@ def symbol_to_market_key(symbol):
     symbol = symbol.upper()
 
     if symbol.endswith("IRT"):
-        return symbol[:-3].lower() + "-rls"
+
+        return (
+            symbol[:-3].lower()
+            + "-rls"
+        )
 
     if symbol.endswith("USDT"):
-        return symbol[:-4].lower() + "-usdt"
+
+        return (
+            symbol[:-4].lower()
+            + "-usdt"
+        )
 
     return ""
 
@@ -330,9 +468,15 @@ def get_markets():
 
     if (
         not payload
-        or not isinstance(payload.get("stats"), dict)
+        or not isinstance(
+            payload.get("stats"),
+            dict
+        )
     ):
-        raise RuntimeError("دریافت بازارهای نوبیتکس ناموفق بود")
+
+        raise RuntimeError(
+            "دریافت بازارهای نوبیتکس ناموفق بود"
+        )
 
     markets = []
 
@@ -351,27 +495,48 @@ def get_markets():
         if quote not in ("rls", "usdt"):
             continue
 
-        if str(item.get("isClosed", False)).lower() == "true":
+        if str(
+            item.get("isClosed", False)
+        ).lower() == "true":
+
             continue
 
-        price = num(item.get("latest"), 0)
+        price = num(
+            item.get("latest"),
+            0
+        )
 
         if price <= 0:
             continue
 
         symbol = (
             base.upper()
-            + ("IRT" if quote == "rls" else "USDT")
+            + (
+                "IRT"
+                if quote == "rls"
+                else "USDT"
+            )
         )
 
         markets.append({
 
             "symbol": symbol,
+
             "market_key": key.lower(),
+
             "quote": quote,
+
             "price": price,
-            "volume": num(item.get("volumeDst"), 0),
-            "change24": num(item.get("dayChange"), 0)
+
+            "volume": num(
+                item.get("volumeDst"),
+                0
+            ),
+
+            "change24": num(
+                item.get("dayChange"),
+                0
+            )
 
         })
 
@@ -379,7 +544,7 @@ def get_markets():
 
 
 # ============================================================
-# ALL PRICES
+# GET ALL PRICES
 # ============================================================
 
 def get_all_prices():
@@ -388,8 +553,12 @@ def get_all_prices():
 
     if (
         not payload
-        or not isinstance(payload.get("stats"), dict)
+        or not isinstance(
+            payload.get("stats"),
+            dict
+        )
     ):
+
         return {}
 
     prices = {}
@@ -399,12 +568,19 @@ def get_all_prices():
         if not isinstance(item, dict):
             continue
 
-        if str(item.get("isClosed", False)).lower() == "true":
+        if str(
+            item.get("isClosed", False)
+        ).lower() == "true":
+
             continue
 
-        price = num(item.get("latest"), 0)
+        price = num(
+            item.get("latest"),
+            0
+        )
 
         if price > 0:
+
             prices[key.lower()] = price
 
     return prices
@@ -428,7 +604,11 @@ def candles(symbol, resolution):
         }
     )
 
-    if not payload or payload.get("s") != "ok":
+    if (
+        not payload
+        or payload.get("s") != "ok"
+    ):
+
         return None
 
     try:
@@ -436,10 +616,15 @@ def candles(symbol, resolution):
         df = pd.DataFrame({
 
             "time": payload["t"],
+
             "open": payload["o"],
+
             "high": payload["h"],
+
             "low": payload["l"],
+
             "close": payload["c"],
+
             "volume": payload.get(
                 "v",
                 [0] * len(payload["t"])
@@ -448,12 +633,14 @@ def candles(symbol, resolution):
         })
 
         for column in (
+
             "time",
             "open",
             "high",
             "low",
             "close",
             "volume"
+
         ):
 
             df[column] = pd.to_numeric(
@@ -467,20 +654,26 @@ def candles(symbol, resolution):
             .drop_duplicates("time")
         )
 
-        # فقط کندل‌های بسته‌شده
+        # حذف کندل باز
 
         df = df[
-            df.time + resolution * 60 <= current_time
+            df.time + resolution * 60
+            <= current_time
         ]
 
         if len(df) < 220:
             return None
 
         last_closed = int(
-            df.time.iloc[-1] + resolution * 60
+            df.time.iloc[-1]
+            + resolution * 60
         )
 
-        if current_time - last_closed > resolution * 60 * 2:
+        if (
+            current_time - last_closed
+            > resolution * 60 * 2
+        ):
+
             return None
 
         return df.reset_index(drop=True)
@@ -498,16 +691,16 @@ def candles(symbol, resolution):
 
 # ============================================================
 # INDICATORS
+# ONLY EMA20 / EMA50 / RSI14 / MACD
 # ============================================================
 
 def indicators(df):
 
     d = df.copy()
 
-    close = d.close
-    high = d.high
-    low = d.low
-    volume = d.volume
+    close = d["close"]
+
+    # EMA
 
     d["ema20"] = close.ewm(
         span=20,
@@ -519,14 +712,12 @@ def indicators(df):
         adjust=False
     ).mean()
 
-    d["ema200"] = close.ewm(
-        span=200,
-        adjust=False
-    ).mean()
+    # RSI 14
 
     delta = close.diff()
 
     gain = delta.clip(lower=0)
+
     loss = -delta.clip(upper=0)
 
     avg_gain = gain.ewm(
@@ -546,7 +737,9 @@ def indicators(df):
         / avg_loss.replace(0, np.nan)
     )
 
-    d["rsi"] = 100 - 100 / (1 + rs)
+    d["rsi"] = (
+        100 - 100 / (1 + rs)
+    )
 
     d.loc[
         (avg_loss == 0) & (avg_gain > 0),
@@ -557,6 +750,8 @@ def indicators(df):
         (avg_loss == 0) & (avg_gain == 0),
         "rsi"
     ] = 50
+
+    # MACD
 
     ema12 = close.ewm(
         span=12,
@@ -570,201 +765,20 @@ def indicators(df):
 
     d["macd"] = ema12 - ema26
 
-    d["macd_signal"] = d.macd.ewm(
+    d["macd_signal"] = d["macd"].ewm(
         span=9,
         adjust=False
     ).mean()
 
-    d["macd_hist"] = d.macd - d.macd_signal
-
-    previous_close = close.shift(1)
-
-    true_range = pd.concat([
-
-        high - low,
-        (high - previous_close).abs(),
-        (low - previous_close).abs()
-
-    ], axis=1).max(axis=1)
-
-    up_move = high.diff()
-    down_move = -low.diff()
-
-    plus_dm = pd.Series(
-        np.where(
-            (up_move > down_move) & (up_move > 0),
-            up_move,
-            0
-        ),
-        index=d.index
+    d["macd_hist"] = (
+        d["macd"] - d["macd_signal"]
     )
-
-    minus_dm = pd.Series(
-        np.where(
-            (down_move > up_move) & (down_move > 0),
-            down_move,
-            0
-        ),
-        index=d.index
-    )
-
-    atr = true_range.ewm(
-        alpha=1 / 14,
-        adjust=False,
-        min_periods=14
-    ).mean()
-
-    plus_smoothed = plus_dm.ewm(
-        alpha=1 / 14,
-        adjust=False,
-        min_periods=14
-    ).mean()
-
-    minus_smoothed = minus_dm.ewm(
-        alpha=1 / 14,
-        adjust=False,
-        min_periods=14
-    ).mean()
-
-    plus_di = (
-        100 * plus_smoothed
-        / atr.replace(0, np.nan)
-    )
-
-    minus_di = (
-        100 * minus_smoothed
-        / atr.replace(0, np.nan)
-    )
-
-    dx = (
-        100 * (plus_di - minus_di).abs()
-        / (plus_di + minus_di).replace(0, np.nan)
-    )
-
-    d["atr"] = atr
-    d["plus_di"] = plus_di
-    d["minus_di"] = minus_di
-
-    d["adx"] = dx.ewm(
-        alpha=1 / 14,
-        adjust=False,
-        min_periods=14
-    ).mean()
-
-    middle = close.rolling(20).mean()
-    deviation = close.rolling(20).std()
-
-    d["bb_mid"] = middle
-    d["bb_upper"] = middle + 2 * deviation
-    d["bb_lower"] = middle - 2 * deviation
-
-    tenkan = (
-        high.rolling(9).max()
-        + low.rolling(9).min()
-    ) / 2
-
-    kijun = (
-        high.rolling(26).max()
-        + low.rolling(26).min()
-    ) / 2
-
-    d["tenkan"] = tenkan
-    d["kijun"] = kijun
-    d["cloud_a"] = (tenkan + kijun) / 2
-
-    d["cloud_b"] = (
-        high.rolling(52).max()
-        + low.rolling(52).min()
-    ) / 2
-
-    direction = np.sign(close.diff()).fillna(0)
-
-    d["obv"] = (direction * volume).cumsum()
-    d["obv_ma"] = d.obv.rolling(20).mean()
 
     return d
 
 
 # ============================================================
-# RSI SIGNAL: CROSS ABOVE 40 + THREE CONSECUTIVE INCREASES
-# ============================================================
-
-def rsi_from_40_signal(df, timeframe):
-
-    d = indicators(df)
-
-    r = d["rsi"].dropna()
-
-    if len(r) < 10:
-        return None
-
-    current = float(r.iloc[-1])
-    previous = float(r.iloc[-2])
-
-    # سه افزایش متوالی:
-    # RSI فعلی > قبلی > دو کندل قبل > سه کندل قبل
-
-    last_four = r.iloc[-4:].tolist()
-
-    rising = (
-        last_four[3] > last_four[2]
-        > last_four[1] > last_four[0]
-    )
-
-    # عبور از زیر یا مساوی 40 به بالای 40
-    # در شش کندل بسته‌شده اخیر
-
-    recent = r.iloc[-RSI_CROSS_LOOKBACK:]
-
-    crossed_40 = False
-
-    for i in range(1, len(recent)):
-
-        if (
-            recent.iloc[i - 1] <= 40
-            and recent.iloc[i] > 40
-        ):
-
-            crossed_40 = True
-            break
-
-    low, high = RSI_RANGES[timeframe]
-
-    in_range = (
-        low < current <= high
-    )
-
-    valid = (
-        current > 40
-        and rising
-        and crossed_40
-        and in_range
-    )
-
-    return {
-
-        "current": round(current, 2),
-
-        "previous": round(previous, 2),
-
-        "difference": round(
-            current - previous,
-            2
-        ),
-
-        "rising": rising,
-
-        "crossed_40": crossed_40,
-
-        "in_range": in_range,
-
-        "valid": valid
-
-    }
-
-
-# ============================================================
-# ANALYSIS
+# BASIC ANALYSIS
 # ============================================================
 
 def analyze(df):
@@ -773,47 +787,60 @@ def analyze(df):
 
     row = d.iloc[-1]
 
+    previous = d.iloc[-2]
+
     keys = (
 
         "close",
+        "open",
+        "high",
+        "low",
+        "volume",
         "ema20",
         "ema50",
-        "ema200",
         "rsi",
         "macd",
         "macd_signal",
-        "macd_hist",
-        "atr",
-        "adx",
-        "plus_di",
-        "minus_di",
-        "cloud_a",
-        "cloud_b",
-        "obv",
-        "obv_ma",
-        "bb_upper",
-        "bb_mid",
-        "bb_lower",
-        "tenkan",
-        "kijun"
+        "macd_hist"
 
     )
 
     values = {
+
         key: num(row[key])
+
         for key in keys
+
     }
+
+    values["previous_close"] = num(
+        previous["close"]
+    )
+
+    values["previous_ema20"] = num(
+        previous["ema20"]
+    )
+
+    values["previous_rsi"] = num(
+        previous["rsi"]
+    )
+
+    values["previous_macd_hist"] = num(
+        previous["macd_hist"]
+    )
 
     required = (
 
         "close",
+        "open",
+        "high",
+        "low",
+        "volume",
         "ema20",
         "ema50",
-        "ema200",
         "rsi",
         "macd",
-        "macd_signal",
-        "atr"
+        "macd_signal"
 
     )
 
@@ -821,568 +848,438 @@ def analyze(df):
         math.isfinite(values[key])
         for key in required
     ):
+
         return None
 
-    score = 50.0
-    reasons = []
+    # Relative volume
+    # Current candle compared with previous 20 candles
 
-    if values["close"] > values["ema20"]:
-
-        score += 5
-        reasons.append("قیمت بالای EMA20")
-
-    else:
-        score -= 5
-
-    if values["ema20"] > values["ema50"]:
-
-        score += 8
-        reasons.append("EMA20 بالای EMA50")
-
-    else:
-        score -= 8
-
-    if values["ema50"] > values["ema200"]:
-
-        score += 8
-        reasons.append("روند میان‌مدت صعودی")
-
-    else:
-        score -= 8
-
-    if values["macd"] > values["macd_signal"]:
-
-        score += 8
-        reasons.append("MACD صعودی")
-
-    else:
-        score -= 6
-
-    rsi = values["rsi"]
-
-    if 50 <= rsi <= 68:
-
-        score += 8
-        reasons.append("RSI در محدوده مناسب")
-
-    elif 45 <= rsi < 50 or 68 < rsi <= 74:
-
-        score += 3
-
-    elif rsi > 78:
-
-        score -= 8
-        reasons.append("RSI بیش‌ازحد بالا")
-
-    elif rsi < 40:
-
-        score -= 7
-        reasons.append("مومنتوم ضعیف")
-
-    if math.isfinite(values["adx"]):
-
-        if (
-            values["adx"] >= 18
-            and values["plus_di"] > values["minus_di"]
-        ):
-
-            score += 6
-            reasons.append("قدرت روند خریداران")
-
-        elif (
-            values["adx"] >= 25
-            and values["minus_di"] > values["plus_di"]
-        ):
-
-            score -= 5
-
-    if (
-        math.isfinite(values["cloud_a"])
-        and math.isfinite(values["cloud_b"])
-    ):
-
-        cloud_top = max(
-            values["cloud_a"],
-            values["cloud_b"]
-        )
-
-        cloud_bottom = min(
-            values["cloud_a"],
-            values["cloud_b"]
-        )
-
-        if values["close"] > cloud_top:
-
-            score += 4
-            reasons.append("قیمت بالای ابر ایچیموکو")
-
-        elif values["close"] < cloud_bottom:
-
-            score -= 4
-
-    if math.isfinite(values["obv_ma"]):
-
-        if values["obv"] > values["obv_ma"]:
-
-            score += 3
-            reasons.append("حجم به نفع خریداران")
-
-        else:
-
-            score -= 2
-
-    values["score"] = round(
-        max(0, min(100, score)),
-        1
+    previous_volumes = (
+        d["volume"]
+        .iloc[-VOLUME_LOOKBACK - 1:-1]
     )
 
-    values["reasons"] = reasons
+    avg_volume = num(
+        previous_volumes.mean(),
+        0
+    )
+
+    volume_ratio = 0
+
+    if avg_volume > 0:
+
+        volume_ratio = (
+            values["volume"] / avg_volume
+        )
+
+    values["avg_volume"] = avg_volume
+
+    values["volume_ratio"] = round(
+        volume_ratio,
+        2
+    )
+
+    values["bullish_candle"] = (
+        values["close"] > values["open"]
+    )
+
+    values["ema_bullish"] = (
+        values["ema20"] > values["ema50"]
+    )
+
+    values["macd_bullish"] = (
+        values["macd"] > values["macd_signal"]
+    )
+
+    values["rsi_bullish"] = (
+        50 <= values["rsi"] <= 68
+    )
 
     values["last_candle_time"] = int(
         df.time.iloc[-1]
-    )
-
-    recent = df.tail(120)
-
-    swing_high = float(recent.high.max())
-    swing_low = float(recent.low.min())
-
-    swing = swing_high - swing_low
-
-    values["fib_382"] = (
-        swing_low + 0.382 * swing
-        if swing > 0 else float("nan")
-    )
-
-    values["fib_500"] = (
-        swing_low + 0.500 * swing
-        if swing > 0 else float("nan")
-    )
-
-    values["fib_618"] = (
-        swing_low + 0.618 * swing
-        if swing > 0 else float("nan")
     )
 
     return values
 
 
 # ============================================================
-# RSI SCANNER
+# SUPPORT / RESISTANCE
+# LOCAL PIVOT DETECTION
 # ============================================================
 
-def is_non_bearish_trend(analysis):
+def find_support_resistance(df, price):
 
-    if not analysis:
-        return False
+    recent = df.tail(
+        SUPPORT_RESISTANCE_LOOKBACK
+    ).reset_index(drop=True)
 
-    return (
+    highs = recent["high"].values
 
-        analysis["close"] >= analysis["ema50"]
+    lows = recent["low"].values
 
-        and analysis["ema20"] >= analysis["ema50"]
+    pivot_highs = []
 
-        and analysis["macd"] >= analysis["macd_signal"]
+    pivot_lows = []
 
-    )
+    for i in range(
+        PIVOT_LEFT,
+        len(recent) - PIVOT_RIGHT
+    ):
 
+        current_high = highs[i]
 
-def deduplicate_rsi_results(results):
+        left_highs = highs[
+            i - PIVOT_LEFT:i
+        ]
 
-    grouped = {}
-
-    for item in results:
-
-        base = symbol_base(item["symbol"])
-
-        if base not in grouped:
-
-            grouped[base] = item
-            continue
-
-        current = grouped[base]
+        right_highs = highs[
+            i + 1:i + 1 + PIVOT_RIGHT
+        ]
 
         if (
-            item["quote"] == "rls"
-            and current["quote"] != "rls"
+            current_high >= max(left_highs)
+            and current_high > max(right_highs)
         ):
 
-            grouped[base] = item
+            pivot_highs.append(
+                float(current_high)
+            )
 
-        elif (
-            item["quote"] == current["quote"]
-            and item["screen_score"] > current["screen_score"]
+        current_low = lows[i]
+
+        left_lows = lows[
+            i - PIVOT_LEFT:i
+        ]
+
+        right_lows = lows[
+            i + 1:i + 1 + PIVOT_RIGHT
+        ]
+
+        if (
+            current_low <= min(left_lows)
+            and current_low < min(right_lows)
         ):
 
-            grouped[base] = item
+            pivot_lows.append(
+                float(current_low)
+            )
 
-    output = list(grouped.values())
+    # اگر پیوت کافی نبود، از سقف و کف اخیر استفاده می‌کنیم.
 
-    output.sort(
-        key=lambda item: (
-            item["match_count"],
-            item["rise_strength"],
-            item["screen_score"]
-        ),
+    if not pivot_highs:
+
+        pivot_highs = [
+            float(recent.high.max())
+        ]
+
+    if not pivot_lows:
+
+        pivot_lows = [
+            float(recent.low.min())
+        ]
+
+    supports = sorted(
+        [
+            level
+            for level in pivot_lows
+            if level < price
+        ],
         reverse=True
     )
 
-    return output
-
-
-def scan_ideal_rsi(screened):
-
-    log.info(
-        "Starting RSI rising scan for %s markets",
-        len(screened)
+    resistances = sorted(
+        [
+            level
+            for level in pivot_highs
+            if level > price
+        ]
     )
 
-    results = []
+    # نزدیک‌ترین حمایت و مقاومت
 
-    scanned = 0
-    failures = 0
-    bearish_removed = 0
+    support = (
+        supports[0]
+        if supports
+        else float(recent.low.min())
+    )
 
-    for index, market in enumerate(screened, 1):
+    resistance = (
+        resistances[0]
+        if resistances
+        else float(recent.high.max())
+    )
 
-        symbol = market["symbol"]
+    # فاصله قیمت از سطوح
 
-        log.info(
-            "RSI scan %s/%s: %s",
-            index,
-            len(screened),
-            symbol
-        )
+    support_distance = (
+        (price - support) / price * 100
+        if price > 0
+        else float("nan")
+    )
 
-        try:
+    resistance_distance = (
+        (resistance - price) / price * 100
+        if price > 0
+        else float("nan")
+    )
 
-            # 1h analysis and RSI signal cached from screening
+    return {
 
-            a1 = market.get("_screen_analysis")
-            signal1 = market.get("_screen_rsi_signal")
+        "support": support,
 
-            if not a1 or not signal1:
+        "resistance": resistance,
 
-                failures += 1
-                continue
+        "support_distance": support_distance,
 
-            # 15m
+        "resistance_distance": resistance_distance,
 
-            df15 = candles(symbol, 15)
+        "pivot_high_count": len(pivot_highs),
 
-            time.sleep(REQUEST_PAUSE)
-
-            if df15 is None:
-
-                failures += 1
-                continue
-
-            a15 = analyze(df15)
-
-            signal15 = rsi_from_40_signal(
-                df15,
-                "15m"
-            )
-
-            if a15 is None or signal15 is None:
-
-                failures += 1
-                continue
-
-            # 4h
-
-            df4 = candles(symbol, 240)
-
-            time.sleep(REQUEST_PAUSE)
-
-            if df4 is None:
-
-                failures += 1
-                continue
-
-            a4 = analyze(df4)
-
-            signal4 = rsi_from_40_signal(
-                df4,
-                "4h"
-            )
-
-            if a4 is None or signal4 is None:
-
-                failures += 1
-                continue
-
-            scanned += 1
-
-            # Remove bearish markets
-
-            trend_1h = is_non_bearish_trend(a1)
-            trend_4h = is_non_bearish_trend(a4)
-
-            if not (trend_1h and trend_4h):
-
-                bearish_removed += 1
-                continue
-
-            signals = {
-
-                "15m": signal15,
-                "1h": signal1,
-                "4h": signal4
-
-            }
-
-            matches = {
-
-                timeframe: signal["valid"]
-
-                for timeframe, signal in signals.items()
-
-            }
-
-            match_count = sum(matches.values())
-
-            if match_count < RSI_MIN_MATCHES:
-                continue
-
-            rise_strength = sum(
-
-                max(0, signal["difference"])
-
-                for signal in signals.values()
-
-                if signal["valid"]
-
-            )
-
-            results.append({
-
-                "symbol": symbol,
-
-                "quote": market["quote"],
-
-                "screen_score": market.get(
-                    "screen_score",
-                    0
-                ),
-
-                "signals": signals,
-
-                "matches": matches,
-
-                "match_count": match_count,
-
-                "rise_strength": round(
-                    rise_strength,
-                    2
-                ),
-
-                "trend_1h": trend_1h,
-
-                "trend_4h": trend_4h
-
-            })
-
-        except Exception as error:
-
-            failures += 1
-
-            log.warning(
-                "RSI scan error %s: %s",
-                symbol,
-                error
-            )
-
-    results = deduplicate_rsi_results(results)
-
-    top_five = results[:MAX_RSI_RESULTS]
-
-    stats = {
-
-        "screened": len(screened),
-
-        "scanned": scanned,
-
-        "failures": failures,
-
-        "bearish_removed": bearish_removed,
-
-        "qualified": len(results),
-
-        "top_count": len(top_five)
+        "pivot_low_count": len(pivot_lows)
 
     }
 
-    log.info(
-        "RSI scan completed: %s",
-        stats
-    )
-
-    return top_five, stats
-
 
 # ============================================================
-# RSI TELEGRAM REPORT
+# TREND ANALYSIS
 # ============================================================
 
-def ideal_rsi_section(top_five, stats):
+def trend_analysis(a4, a1):
 
-    labels = {
+    score = 0
 
-        "15m": "۱۵ دقیقه",
-        "1h": "۱ ساعت",
-        "4h": "۴ ساعت"
+    reasons = []
+
+    # 4H primary trend
+
+    if a4["close"] > a4["ema20"]:
+
+        score += 8
+
+        reasons.append(
+            "قیمت ۴ساعته بالای EMA20"
+        )
+
+    if a4["ema20"] > a4["ema50"]:
+
+        score += 9
+
+        reasons.append(
+            "EMA20 بالای EMA50 در ۴ساعته"
+        )
+
+    # 1H trend confirmation
+
+    if a1["close"] > a1["ema20"]:
+
+        score += 4
+
+        reasons.append(
+            "قیمت یک‌ساعته بالای EMA20"
+        )
+
+    if a1["ema20"] > a1["ema50"]:
+
+        score += 4
+
+        reasons.append(
+            "EMA20 بالای EMA50 در یک‌ساعته"
+        )
+
+    return {
+
+        "score": min(
+            WEIGHT_TREND,
+            score
+        ),
+
+        "reasons": reasons,
+
+        "bullish_4h": (
+            a4["close"] > a4["ema20"]
+            and a4["ema20"] > a4["ema50"]
+        ),
+
+        "bullish_1h": (
+            a1["close"] > a1["ema20"]
+            and a1["ema20"] > a1["ema50"]
+        )
 
     }
 
-    lines = [
 
-        "",
-        line_separator(),
+# ============================================================
+# VOLUME SCORE
+# ============================================================
 
-        "🚀 <b>پنج ارز برتر با RSI صعودی از ۴۰</b>",
+def volume_score(a15):
 
-        "",
-        "📌 شروط انتخاب:",
-        "• عبور RSI از زیر ۴۰ به بالای ۴۰",
-        "• سه افزایش متوالی RSI در کندل‌های بسته‌شده",
-        "• حداقل دو تایم‌فریم از سه تایم‌فریم",
-        "• روند یک‌ساعته و چهارساعته غیرنزولی",
+    ratio = a15["volume_ratio"]
 
-        "",
-        line_separator(),
+    if ratio >= 2.5:
+        score = 20
 
-        f"🔎 بازارهای غربال‌شده: <b>{stats['screened']}</b>",
+    elif ratio >= 2.0:
+        score = 18
 
-        f"🔬 بازارهای بررسی‌شده: <b>{stats['scanned']}</b>",
+    elif ratio >= 1.5:
+        score = 15
 
-        f"⚠️ خطا یا داده نامعتبر: <b>{stats['failures']}</b>",
+    elif ratio >= 1.2:
+        score = 10
 
-        f"📉 حذف به علت روند نزولی: <b>{stats['bearish_removed']}</b>",
+    elif ratio >= 0.8:
+        score = 6
 
-        f"✅ واجد شرایط: <b>{stats['qualified']}</b>",
+    elif ratio >= 0.5:
+        score = 3
 
-        ""
+    else:
+        score = 0
 
-    ]
+    return score
 
-    if not top_five:
 
-        lines.extend([
+# ============================================================
+# INDICATOR SCORE
+# EMA / RSI / MACD
+# ============================================================
 
-            "❌ هیچ ارزی با شرایط تعیین‌شده پیدا نشد.",
+def indicator_score(a15):
 
-            "در صورت نبود سیگنال معتبر، فهرست خالی می‌ماند.",
+    score = 0
 
-            line_separator()
+    details = {}
 
-        ])
+    # EMA
 
-        return lines
+    if a15["ema20"] > a15["ema50"]:
 
-    for index, item in enumerate(top_five, 1):
+        score += WEIGHT_EMA
 
-        lines.append(
-            f"🏅 <b>رتبه {index} | {esc(item['symbol'])}</b>"
+        details["ema"] = True
+
+    else:
+
+        details["ema"] = False
+
+    # RSI
+
+    if 50 <= a15["rsi"] <= 68:
+
+        score += WEIGHT_RSI
+
+        details["rsi"] = True
+
+    else:
+
+        details["rsi"] = False
+
+    # MACD
+
+    if a15["macd"] > a15["macd_signal"]:
+
+        score += WEIGHT_MACD
+
+        details["macd"] = True
+
+    else:
+
+        details["macd"] = False
+
+    return score, details
+
+
+# ============================================================
+# SUPPORT / RESISTANCE SCORE
+# ============================================================
+
+def sr_score(a15, sr):
+
+    price = a15["close"]
+
+    support_distance = sr["support_distance"]
+
+    resistance_distance = sr["resistance_distance"]
+
+    score = 0
+
+    reasons = []
+
+    # Confirmed breakout:
+    # Previous closed candle below resistance
+    # Current closed candle above resistance
+
+    breakout = (
+
+        a15["previous_close"] <= sr["resistance"]
+
+        and price > sr["resistance"]
+
+        and a15["bullish_candle"]
+
+    )
+
+    if breakout:
+
+        score += 25
+
+        reasons.append(
+            "شکست مقاومت با بسته‌شدن کندل"
         )
 
-        lines.append(
-            f"💱 {quote_label(item['quote'])}"
+    elif (
+        math.isfinite(support_distance)
+        and support_distance <= 1.5
+        and support_distance >= 0
+    ):
+
+        score += 20
+
+        reasons.append(
+            "قیمت نزدیک حمایت"
         )
 
-        lines.append(
-            f"⭐ تایم‌فریم‌های منطبق: <b>{item['match_count']} از ۳</b>"
+    elif (
+        math.isfinite(resistance_distance)
+        and resistance_distance <= 1.5
+        and resistance_distance >= 0
+    ):
+
+        score += 12
+
+        reasons.append(
+            "قیمت نزدیک مقاومت"
         )
 
-        if item["match_count"] == 3:
+    elif (
+        math.isfinite(support_distance)
+        and support_distance <= 4
+        and support_distance >= 0
+    ):
 
-            lines.append(
-                "🟢 اولویت: بسیار بالا از نظر تطابق RSI"
-            )
+        score += 10
 
-        else:
-
-            lines.append(
-                "🟡 اولویت: قابل بررسی"
-            )
-
-        lines.append("")
-
-        for timeframe in ("15m", "1h", "4h"):
-
-            signal = item["signals"][timeframe]
-
-            current = signal["current"]
-            previous = signal["previous"]
-            difference = signal["difference"]
-
-            if signal["valid"]:
-
-                mark = "🟢"
-                direction = "صعودی تأییدشده"
-
-            elif signal["crossed_40"]:
-
-                mark = "🟡"
-                direction = "عبور از ۴۰؛ شروط کامل نیست"
-
-            else:
-
-                mark = "❌"
-                direction = "بدون سیگنال معتبر"
-
-            arrow = (
-                "↑" if difference > 0
-                else "↓" if difference < 0
-                else "→"
-            )
-
-            lines.append(
-                f"{mark} <b>{labels[timeframe]}</b>"
-            )
-
-            lines.append(
-                f"   RSI فعلی: <code>{current:.2f}</code>"
-            )
-
-            lines.append(
-                f"   RSI قبلی: <code>{previous:.2f}</code>"
-            )
-
-            lines.append(
-                f"   تغییر: <b>{difference:+.2f} {arrow}</b>"
-            )
-
-            lines.append(
-                f"   وضعیت: {direction}"
-            )
-
-            lines.append("")
-
-        lines.append(
-            f"📊 امتیاز غربالگری: <b>{item['screen_score']:.1f}</b>"
+        reasons.append(
+            "حمایت در فاصله قابل بررسی"
         )
 
-        lines.append(
-            f"💪 قدرت افزایش RSI: <b>{item['rise_strength']:.2f}</b>"
-        )
+    else:
 
-        lines.append(
-            "📈 روند یک‌ساعته و چهارساعته: غیرنزولی"
-        )
+        score += 4
 
-        lines.append(line_separator())
+    return {
 
-    lines.extend([
+        "score": min(
+            WEIGHT_SR,
+            score
+        ),
 
-        "",
-        "⚠️ RSI صعودی تضمین‌کننده افزایش قیمت نیست.",
-        "قبل از معامله، حجم، اسپرد و روند کلی بازار را بررسی کن.",
-        line_separator()
+        "breakout": breakout,
 
-    ])
+        "reasons": reasons
 
-    return lines
+    }
 
 
 # ============================================================
@@ -1401,177 +1298,561 @@ def spread_pct(symbol):
         if not isinstance(payload, dict):
             return None
 
-        data = payload.get("data", payload)
+        data = payload.get(
+            "data",
+            payload
+        )
 
         bids = data.get("bids")
+
         asks = data.get("asks")
 
         if not bids or not asks:
             return None
 
         first_bid = bids[0]
+
         first_ask = asks[0]
 
-        if isinstance(first_bid, (list, tuple)):
-            bid = num(first_bid[0])
-        else:
-            bid = num(first_bid.get("price"))
+        if isinstance(
+            first_bid,
+            (list, tuple)
+        ):
 
-        if isinstance(first_ask, (list, tuple)):
-            ask = num(first_ask[0])
+            bid = num(first_bid[0])
+
         else:
-            ask = num(first_ask.get("price"))
+
+            bid = num(
+                first_bid.get("price")
+            )
+
+        if isinstance(
+            first_ask,
+            (list, tuple)
+        ):
+
+            ask = num(first_ask[0])
+
+        else:
+
+            ask = num(
+                first_ask.get("price")
+            )
 
         if bid <= 0 or ask <= bid:
             return None
 
-        return 100 * (ask - bid) / ((ask + bid) / 2)
+        return (
+            100
+            * (ask - bid)
+            / ((ask + bid) / 2)
+        )
 
     except Exception:
+
         return None
+
+
+# ============================================================
+# RISK MANAGEMENT
+# ============================================================
+
+def calculate_trade_levels(
+    entry,
+    support
+):
+
+    if entry <= 0:
+        return None
+
+    # Stop slightly below support
+
+    if support > 0 and support < entry:
+
+        stop = support * 0.995
+
+    else:
+
+        stop = entry * 0.97
+
+    risk_distance = entry - stop
+
+    risk_pct = (
+        risk_distance / entry * 100
+    )
+
+    if risk_distance <= 0:
+        return None
+
+    if risk_pct > MAX_STOP_DISTANCE_PCT:
+
+        return None
+
+    estimated_cost = (
+        entry
+        * ESTIMATED_ROUND_TRIP_COST_PCT
+        / 100
+    )
+
+    # اهداف با لحاظ هزینه تخمینی معامله
+
+    target1 = (
+        entry
+        + 2.2 * risk_distance
+        + estimated_cost
+    )
+
+    target2 = (
+        entry
+        + 3.2 * risk_distance
+        + estimated_cost
+    )
+
+    net_reward = (
+        target1 - entry - estimated_cost
+    )
+
+    effective_risk = (
+        risk_distance + estimated_cost
+    )
+
+    rr = (
+        net_reward / effective_risk
+        if effective_risk > 0
+        else 0
+    )
+
+    return {
+
+        "entry": entry,
+
+        "sl": stop,
+
+        "tp1": target1,
+
+        "tp2": target2,
+
+        "risk_pct": risk_pct,
+
+        "rr": rr,
+
+        "estimated_cost_pct": (
+            ESTIMATED_ROUND_TRIP_COST_PCT
+        )
+
+    }
 
 
 # ============================================================
 # BUILD CANDIDATE
 # ============================================================
 
-def build_candidate(market, analyses):
+def build_candidate(
+    market,
+    analyses,
+    spread
+):
 
     a15 = analyses[15]
+
     a1 = analyses[60]
+
     a4 = analyses[240]
 
-    weighted_score = (
-        0.25 * a15["score"]
-        + 0.35 * a1["score"]
-        + 0.40 * a4["score"]
+    price = a15["close"]
+
+    # --------------------------------------------------------
+    # 1. TREND
+    # --------------------------------------------------------
+
+    trend = trend_analysis(
+        a4,
+        a1
     )
 
-    spread = spread_pct(market["symbol"])
+    # --------------------------------------------------------
+    # 2. SUPPORT / RESISTANCE
+    # --------------------------------------------------------
 
-    spread_penalty = 0
-
-    if spread is not None:
-
-        if spread > 2.0:
-            spread_penalty = 15
-
-        elif spread > 1.2:
-            spread_penalty = 8
-
-        elif spread > 0.8:
-            spread_penalty = 4
-
-    final_score = max(
-        0,
-        min(100, weighted_score - spread_penalty)
+    sr = find_support_resistance(
+        analyses["df15"],
+        price
     )
 
-    atr15 = a15["atr"]
-
-    entry_low = a15["ema20"] - 0.35 * atr15
-    entry_high = a15["ema20"] + 0.15 * atr15
-
-    if entry_low > entry_high:
-        entry_low, entry_high = entry_high, entry_low
-
-    reference_price = (entry_low + entry_high) / 2
-
-    risk_distance = max(
-        1.5 * atr15,
-        0.8 * a1["atr"]
+    sr_result = sr_score(
+        a15,
+        sr
     )
 
-    stop_loss = reference_price - risk_distance
-    target1 = reference_price + 2 * risk_distance
-    target2 = reference_price + 3 * risk_distance
+    # --------------------------------------------------------
+    # 3. VOLUME
+    # --------------------------------------------------------
 
-    trend_alignment = (
+    v_score = volume_score(a15)
 
-        a1["score"] >= 60
-        and a4["score"] >= 60
-        and a1["macd"] > a1["macd_signal"]
-        and a4["macd"] > a4["macd_signal"]
-        and a4["rsi"] < 75
+    # --------------------------------------------------------
+    # 4. EMA / RSI / MACD
+    # --------------------------------------------------------
+
+    i_score, i_details = indicator_score(
+        a15
+    )
+
+    # --------------------------------------------------------
+    # RAW SCORE: 85
+    # NORMALIZED SCORE: 100
+    # --------------------------------------------------------
+
+    raw_score = (
+
+        trend["score"]
+
+        + sr_result["score"]
+
+        + v_score
+
+        + i_score
 
     )
 
-    not_overextended = (
-        a15["close"] <= a15["ema20"] + atr15
+    final_score = (
+        raw_score / RAW_MAX_SCORE * 100
     )
 
-    spread_ok = (
-        spread is None or spread <= 1.2
+    final_score = round(
+        clamp(final_score, 0, 100),
+        1
     )
 
-    if (
-        final_score >= BUY_SETUP_SCORE
-        and trend_alignment
-        and not_overextended
-        and spread_ok
+    # --------------------------------------------------------
+    # ENTRY
+    # --------------------------------------------------------
+
+    if sr_result["breakout"]:
+
+        entry_low = sr["resistance"] * 0.998
+
+        entry_high = sr["resistance"] * 1.005
+
+    elif (
+        sr["support"] < price
+        and sr["support_distance"] <= 1.5
     ):
 
-        classification = "آماده بررسی"
+        entry_low = sr["support"]
 
-    elif final_score >= 70:
-
-        classification = "قوی؛ منتظر تأیید"
-
-    elif final_score >= MIN_WATCH_SCORE:
-
-        classification = "متوسط؛ فقط پایش"
+        entry_high = sr["support"] * 1.01
 
     else:
 
-        classification = "ضعیف؛ عدم ورود"
+        entry_low = price * 0.995
+
+        entry_high = price * 1.005
+
+    # --------------------------------------------------------
+    # RISK CALCULATION
+    # --------------------------------------------------------
+
+    entry_reference = price
+
+    risk = calculate_trade_levels(
+        entry_reference,
+        sr["support"]
+    )
+
+    if risk is None:
+
+        risk = {
+
+            "entry": entry_reference,
+
+            "sl": entry_reference * 0.97,
+
+            "tp1": entry_reference * 1.066,
+
+            "tp2": entry_reference * 1.096,
+
+            "risk_pct": 3.0,
+
+            "rr": 2.0,
+
+            "estimated_cost_pct": (
+                ESTIMATED_ROUND_TRIP_COST_PCT
+            )
+
+        }
+
+    # --------------------------------------------------------
+    # BUY CONDITIONS
+    # --------------------------------------------------------
+
+    trend_ok = (
+
+        trend["bullish_4h"]
+
+        and trend["bullish_1h"]
+
+    )
+
+    volume_ok = (
+        a15["volume_ratio"] >= MIN_VOLUME_RATIO
+    )
+
+    indicators_ok = (
+
+        a15["ema20"] > a15["ema50"]
+
+        and 50 <= a15["rsi"] <= 68
+
+        and a15["macd"] > a15["macd_signal"]
+
+    )
+
+    breakout_ok = (
+        sr_result["breakout"]
+    )
+
+    spread_ok = (
+
+        spread is not None
+
+        and spread <= MAX_SPREAD_PCT
+
+    )
+
+    rr_ok = (
+        risk["rr"] >= MIN_RISK_REWARD
+    )
+
+    not_overextended = (
+
+        price <= a15["ema20"] * 1.035
+
+    )
+
+    buy_conditions = all([
+
+        final_score >= BUY_SETUP_SCORE,
+
+        trend_ok,
+
+        volume_ok,
+
+        indicators_ok,
+
+        breakout_ok,
+
+        spread_ok,
+
+        rr_ok,
+
+        not_overextended
+
+    ])
+
+    # --------------------------------------------------------
+    # CLASSIFICATION
+    # --------------------------------------------------------
+
+    if buy_conditions:
+
+        classification = "BUY"
+
+        status = "BUY_SETUP"
+
+    elif final_score >= MIN_WATCH_SCORE:
+
+        classification = "WATCH"
+
+        status = "WAITING"
+
+    else:
+
+        classification = "NO_TRADE"
+
+        status = "NO_TRADE"
+
+    # --------------------------------------------------------
+    # REASONS
+    # --------------------------------------------------------
+
+    reasons = []
+
+    reasons.extend(
+        trend["reasons"]
+    )
+
+    reasons.extend(
+        sr_result["reasons"]
+    )
+
+    if volume_ok:
+
+        reasons.append(
+            "حجم معاملات بالاتر از میانگین"
+        )
+
+    if a15["ema20"] > a15["ema50"]:
+
+        reasons.append(
+            "EMA20 بالای EMA50"
+        )
+
+    if 50 <= a15["rsi"] <= 68:
+
+        reasons.append(
+            "RSI در محدوده مناسب"
+        )
+
+    if a15["macd"] > a15["macd_signal"]:
+
+        reasons.append(
+            "MACD صعودی"
+        )
+
+    # --------------------------------------------------------
+    # RETURN
+    # --------------------------------------------------------
 
     return {
 
         "symbol": market["symbol"],
+
         "quote": market["quote"],
+
         "volume": market["volume"],
+
         "change24": market["change24"],
 
-        "score": round(final_score, 1),
+        "score": final_score,
+
+        "raw_score": raw_score,
+
         "rank": final_score,
+
         "classification": classification,
 
+        "status": status,
+
         "spread": spread,
-        "price_at_scan": a15["close"],
+
+        "price_at_scan": price,
 
         "entry_low": entry_low,
+
         "entry_high": entry_high,
-        "sl": stop_loss,
-        "tp1": target1,
-        "tp2": target2,
+
+        "entry": risk["entry"],
+
+        "sl": risk["sl"],
+
+        "tp1": risk["tp1"],
+
+        "tp2": risk["tp2"],
+
+        "risk_pct": risk["risk_pct"],
+
+        "rr": risk["rr"],
+
+        "estimated_cost_pct": (
+            risk["estimated_cost_pct"]
+        ),
+
+        "support": sr["support"],
+
+        "resistance": sr["resistance"],
+
+        "support_distance": (
+            sr["support_distance"]
+        ),
+
+        "resistance_distance": (
+            sr["resistance_distance"]
+        ),
+
+        "breakout": breakout_ok,
+
+        "volume_ratio": (
+            a15["volume_ratio"]
+        ),
 
         "scores": {
-            "15m": a15["score"],
-            "1h": a1["score"],
-            "4h": a4["score"]
+
+            "trend": trend["score"],
+
+            "sr": sr_result["score"],
+
+            "volume": v_score,
+
+            "indicators": i_score,
+
+            "15m": 0,
+
+            "1h": 0,
+
+            "4h": 0
+
         },
 
         "rsi": {
+
             "15m": a15["rsi"],
+
             "1h": a1["rsi"],
+
             "4h": a4["rsi"]
+
         },
 
-        "adx": {
-            "15m": a15["adx"],
-            "1h": a1["adx"],
-            "4h": a4["adx"]
+        "ema": {
+
+            "15m": (
+                a15["ema20"] > a15["ema50"]
+            ),
+
+            "1h": (
+                a1["ema20"] > a1["ema50"]
+            ),
+
+            "4h": (
+                a4["ema20"] > a4["ema50"]
+            )
+
         },
 
-        "reasons": {
-            "15m": a15["reasons"],
-            "1h": a1["reasons"],
-            "4h": a4["reasons"]
+        "macd": {
+
+            "15m": (
+                a15["macd"] > a15["macd_signal"]
+            ),
+
+            "1h": (
+                a1["macd"] > a1["macd_signal"]
+            ),
+
+            "4h": (
+                a4["macd"] > a4["macd_signal"]
+            )
+
         },
+
+        "trend_ok": trend_ok,
+
+        "volume_ok": volume_ok,
+
+        "indicators_ok": indicators_ok,
+
+        "spread_ok": spread_ok,
+
+        "rr_ok": rr_ok,
+
+        "reasons": reasons,
 
         "created": now_ts(),
-        "status": "WAITING",
+
         "alerts": [],
+
         "price_mismatch": False
 
     }
@@ -1584,6 +1865,8 @@ def build_candidate(market, analyses):
 def analyze_market(market):
 
     analyses = {}
+
+    dataframes = {}
 
     for timeframe in TIMEFRAMES:
 
@@ -1605,22 +1888,35 @@ def analyze_market(market):
 
             return (
                 None,
-                f"اندیکاتورهای {timeframe} دقیقه‌ای کامل نبود"
+                f"تحلیل {timeframe} دقیقه‌ای ناقص بود"
             )
 
         analyses[timeframe] = result
 
+        dataframes[timeframe] = df
+
         time.sleep(REQUEST_PAUSE)
 
-    return (
-        build_candidate(market, analyses),
-        None
+    # Dataframe needed for support/resistance
+
+    analyses["df15"] = dataframes[15]
+
+    spread = spread_pct(
+        market["symbol"]
     )
+
+    candidate = build_candidate(
+        market,
+        analyses,
+        spread
+    )
+
+    return candidate, None
 
 
 # ============================================================
 # REMOVE DUPLICATE ASSETS
-# Prefer IRT
+# PREFER IRT
 # ============================================================
 
 def deduplicate_candidates(candidates):
@@ -1629,11 +1925,14 @@ def deduplicate_candidates(candidates):
 
     for item in candidates:
 
-        base = symbol_base(item["symbol"])
+        base = symbol_base(
+            item["symbol"]
+        )
 
         if base not in grouped:
 
             grouped[base] = item
+
             continue
 
         current = grouped[base]
@@ -1652,7 +1951,9 @@ def deduplicate_candidates(candidates):
 
             grouped[base] = item
 
-    result = list(grouped.values())
+    result = list(
+        grouped.values()
+    )
 
     result.sort(
         key=lambda item: item["rank"],
@@ -1663,120 +1964,49 @@ def deduplicate_candidates(candidates):
 
 
 # ============================================================
-# TIMEFRAME SCORES >= 70
-# ============================================================
-
-def timeframe_score_section(candidates):
-
-    labels = {
-        "15m": "۱۵ دقیقه",
-        "1h": "۱ ساعت",
-        "4h": "۴ ساعت"
-    }
-
-    qualifying = []
-
-    for item in candidates:
-
-        scores = item.get("scores", {})
-        matched = []
-
-        for timeframe in ("15m", "1h", "4h"):
-
-            score = num(scores.get(timeframe))
-
-            if (
-                math.isfinite(score)
-                and score >= TIMEFRAME_HIGHLIGHT_SCORE
-            ):
-
-                matched.append((timeframe, score))
-
-        if matched:
-            qualifying.append((item, matched))
-
-    qualifying.sort(
-        key=lambda row: max(
-            score for _, score in row[1]
-        ),
-        reverse=True
-    )
-
-    lines = [
-
-        "",
-        line_separator(),
-
-        "⭐ <b>ارزهای دارای امتیاز ۷۰ و بالاتر در تایم‌فریم‌ها</b>",
-
-        "📌 فقط تایم‌فریم‌هایی نمایش داده می‌شوند که امتیازشان حداقل ۷۰ باشد.",
-
-        ""
-
-    ]
-
-    if not qualifying:
-
-        lines.append(
-            "در این اسکن هیچ ارزی در هیچ تایم‌فریمی امتیاز ۷۰ یا بالاتر نگرفت."
-        )
-
-        lines.append(line_separator())
-
-        return lines
-
-    total_scores = 0
-
-    for item, matched in qualifying:
-
-        lines.append(
-            f"🟢 <b>{esc(item['symbol'])}</b>"
-        )
-
-        for timeframe, score in matched:
-
-            lines.append(
-                f"   ⏱ {labels[timeframe]}: <b>{score:.1f}/100</b>"
-            )
-
-            total_scores += 1
-
-        lines.append("")
-
-    lines.extend([
-
-        f"📊 تعداد ارزهای واجد شرایط: <b>{len(qualifying)}</b>",
-
-        f"⭐ تعداد امتیازهای واجد شرایط: <b>{total_scores}</b>",
-
-        line_separator()
-
-    ])
-
-    return lines
-
-
-# ============================================================
-# TELEGRAM REPORT CARD
+# CANDIDATE CARD
 # ============================================================
 
 def candidate_card(index, item):
 
-    symbol = esc(item["symbol"])
-    score = item["score"]
-
-    spread_text = (
-        f"{item['spread']:.3f}%"
-        if item["spread"] is not None
-        else "نامشخص"
+    symbol = esc(
+        item["symbol"]
     )
 
-    reasons = item["reasons"]["4h"][:3]
+    score = item["score"]
 
-    reasons_text = (
-        "، ".join(esc(x) for x in reasons)
-        if reasons
-        else "مورد برجسته‌ای ثبت نشد"
+    spread = item["spread"]
+
+    spread_text = (
+
+        f"{spread:.3f}%"
+
+        if spread is not None
+
+        else "نامشخص"
+
+    )
+
+    if item["classification"] == "BUY":
+
+        heading = "🟢 سیگنال خرید تحلیلی"
+
+    elif item["classification"] == "WATCH":
+
+        heading = "🟡 واچ‌لیست"
+
+    else:
+
+        heading = "🔴 بدون موقعیت مناسب"
+
+    reasons = item["reasons"][:5]
+
+    reasons_text = "\n".join(
+
+        "• " + esc(reason)
+
+        for reason in reasons
+
     )
 
     lines = [
@@ -1785,62 +2015,198 @@ def candidate_card(index, item):
 
         f"🏅 <b>رتبه {index} | {symbol}</b>",
 
-        f"💱 <i>{quote_label(item['quote'])}</i>",
+        f"💱 {quote_label(item['quote'])}",
 
         "",
 
-        f"⭐ <b>امتیاز: {score}/100</b> — {score_label(score)}",
+        heading,
+
+        "",
+
+        f"⭐ امتیاز: <b>{score:.1f}/100</b>",
 
         f"<code>{score_bar(score)}</code>",
 
-        f"📌 ارزیابی: <b>{esc(item['classification'])}</b>",
+        f"📌 وضعیت: <b>{item['classification']}</b>",
 
         "",
 
-        "📊 امتیاز تایم‌فریم‌ها ۱۵دقیقه / ۱ساعت / ۴ساعت:",
+        "📊 <b>تجزیه امتیاز:</b>",
+
+        f"• روند: {item['scores']['trend']}/25",
+
+        f"• حمایت و مقاومت: {item['scores']['sr']}/25",
+
+        f"• حجم: {item['scores']['volume']}/20",
+
+        f"• EMA/RSI/MACD: {item['scores']['indicators']}/15",
+
+        "",
+
+        "💰 <b>اطلاعات بازار:</b>",
+
+        f"قیمت آخرین کندل: <code>{fmt(item['price_at_scan'])}</code>",
+
+        f"حجم نسبی ۱۵ دقیقه: <b>{item['volume_ratio']:.2f}x</b>",
+
+        f"اسپرد: <b>{spread_text}</b>",
+
+        "",
+
+        "📈 <b>وضعیت تایم‌فریم‌ها:</b>",
 
         (
-            f"<code>{item['scores']['15m']:.1f} / "
-            f"{item['scores']['1h']:.1f} / "
-            f"{item['scores']['4h']:.1f}</code>"
+            "4H: "
+            + (
+                "🟢 صعودی"
+                if item["ema"]["4h"]
+                else "🔴 غیرصعودی"
+            )
+        ),
+
+        (
+            "1H: "
+            + (
+                "🟢 صعودی"
+                if item["ema"]["1h"]
+                else "🔴 غیرصعودی"
+            )
+        ),
+
+        (
+            "15M: "
+            + (
+                "🟢 صعودی"
+                if item["ema"]["15m"]
+                else "🔴 غیرصعودی"
+            )
         ),
 
         "",
 
-        f"💰 قیمت آخرین کندل: <b>{fmt(item['price_at_scan'])}</b>",
-
-        f"↔️ اسپرد: {spread_text}",
+        (
+            "RSI در 15M / 1H / 4H: "
+            f"{item['rsi']['15m']:.1f} / "
+            f"{item['rsi']['1h']:.1f} / "
+            f"{item['rsi']['4h']:.1f}"
+        ),
 
         "",
 
-        "🎯 <b>سطوح محاسباتی:</b>",
+        "📍 <b>حمایت و مقاومت:</b>",
+
+        f"حمایت: <code>{fmt(item['support'])}</code>",
+
+        f"مقاومت: <code>{fmt(item['resistance'])}</code>",
 
         (
-            f"🟢 محدوده ورود: "
+            "شکست مقاومت: "
+            + (
+                "🟢 تأییدشده"
+                if item["breakout"]
+                else "🟡 تأییدنشده"
+            )
+        ),
+
+        "",
+
+        "🎯 <b>نقشه معاملاتی محاسباتی:</b>",
+
+        (
+            f"محدوده ورود: "
             f"<code>{fmt(item['entry_low'])}</code>"
             f" تا "
             f"<code>{fmt(item['entry_high'])}</code>"
         ),
 
-        f"🔴 حد ضرر: <code>{fmt(item['sl'])}</code>",
+        f"قیمت مرجع: <code>{fmt(item['entry'])}</code>",
 
-        f"🎯 هدف اول: <code>{fmt(item['tp1'])}</code>",
+        f"حد ضرر: <code>{fmt(item['sl'])}</code>",
 
-        f"🏆 هدف دوم: <code>{fmt(item['tp2'])}</code>",
+        f"هدف اول: <code>{fmt(item['tp1'])}</code>",
 
-        "",
+        f"هدف دوم: <code>{fmt(item['tp2'])}</code>",
 
-        (
-            "📈 RSI یک‌ساعته / چهارساعته: "
-            f"{fmt(item['rsi']['1h'])} / "
-            f"{fmt(item['rsi']['4h'])}"
-        ),
+        f"ریسک تا حد ضرر: <b>{item['risk_pct']:.2f}%</b>",
+
+        f"نسبت سود به زیان هدف اول: <b>{item['rr']:.2f}</b>",
 
         "",
 
-        f"💡 دلایل مثبت ۴ساعته: {reasons_text}",
+        "💡 <b>دلایل مثبت:</b>",
+
+        reasons_text if reasons_text else "مورد برجسته‌ای ثبت نشد",
 
         line_separator()
+
+    ]
+
+    return lines
+
+
+# ============================================================
+# SCAN REPORT
+# ============================================================
+
+def scan_report(
+    markets,
+    screened,
+    selected,
+    candidates,
+    watchlist,
+    failures_screen,
+    failures_deep
+):
+
+    lines = [
+
+        "🚀 <b>NOBITEX SMART TRADER | V6</b>",
+
+        "🧠 سیستم تحلیل چندتایم‌فریمی",
+
+        line_separator(),
+
+        "",
+
+        "📊 <b>گزارش اسکن بازار:</b>",
+
+        f"🌐 بازارهای فعال: <b>{markets}</b>",
+
+        f"🔎 بازارهای دارای داده یک‌ساعته: <b>{screened}</b>",
+
+        f"🎯 بازارهای انتخاب‌شده برای تحلیل عمیق: <b>{selected}</b>",
+
+        f"✅ تحلیل عمیق موفق: <b>{candidates}</b>",
+
+        f"⚠️ خطای غربالگری: <b>{failures_screen}</b>",
+
+        f"⚠️ خطای تحلیل عمیق: <b>{failures_deep}</b>",
+
+        f"👀 ارزهای واردشده به واچ‌لیست: <b>{watchlist}</b>",
+
+        "",
+
+        "🧭 <b>روش تحلیل:</b>",
+
+        "• 4H: تشخیص روند اصلی",
+
+        "• 1H: بررسی موقعیت بازار",
+
+        "• 15M: بررسی نقطه ورود",
+
+        "• حمایت و مقاومت: تشخیص سطوح مهم",
+
+        "• حجم: مقایسه با میانگین ۲۰ کندل",
+
+        "• اندیکاتورها: EMA20/50، RSI14 و MACD",
+
+        "",
+
+        line_separator(),
+
+        "🏆 <b>پنج ارز برتر:</b>",
+
+        ""
 
     ]
 
@@ -1853,21 +2219,35 @@ def candidate_card(index, item):
 
 def run_full_scan(state):
 
-    log.info("Starting full scan")
+    log.info(
+        "Starting Nobitex Smart Trader V6"
+    )
 
     markets = get_markets()
 
-    log.info("Active markets: %s", len(markets))
+    log.info(
+        "Active markets: %s",
+        len(markets)
+    )
 
     if not markets:
-        raise RuntimeError("هیچ بازار فعالی دریافت نشد")
 
-    # STEP 1: SCREEN ALL MARKETS
+        raise RuntimeError(
+            "هیچ بازار فعالی دریافت نشد"
+        )
+
+    # --------------------------------------------------------
+    # STEP 1: 1H SCREENING
+    # --------------------------------------------------------
 
     screened = []
+
     failures_screen = 0
 
-    for index, market in enumerate(markets, 1):
+    for index, market in enumerate(
+        markets,
+        1
+    ):
 
         log.info(
             "Screen %s/%s: %s",
@@ -1878,36 +2258,33 @@ def run_full_scan(state):
 
         try:
 
-            df = candles(market["symbol"], 60)
+            df = candles(
+                market["symbol"],
+                60
+            )
 
-            if df is not None:
-
-                result = analyze(df)
-
-                if result is not None:
-
-                    # Cache 1h analysis
-
-                    market["screen_score"] = result["score"]
-
-                    market["_screen_analysis"] = result
-
-                    # Cache 1h RSI signal
-                    # No additional API request
-
-                    market["_screen_rsi_signal"] = (
-                        rsi_from_40_signal(df, "1h")
-                    )
-
-                    screened.append(market)
-
-                else:
-
-                    failures_screen += 1
-
-            else:
+            if df is None:
 
                 failures_screen += 1
+
+                continue
+
+            result = analyze(df)
+
+            if result is None:
+
+                failures_screen += 1
+
+                continue
+
+            market["screen_score"] = 0
+
+            # غربالگری اولیه فقط برای انتخاب بازارهای
+            # دارای داده معتبر و حجم مناسب است.
+
+            market["_screen_analysis"] = result
+
+            screened.append(market)
 
         except Exception as error:
 
@@ -1924,23 +2301,25 @@ def run_full_scan(state):
     if not screened:
 
         raise RuntimeError(
-            "هیچ بازاری در مرحله غربالگری داده معتبر نداشت"
+            "هیچ بازاری داده معتبر برای تحلیل نداشت"
         )
 
-    # STEP 2: RSI SCAN ON ALL SCREENED MARKETS
-
-    top_rsi, rsi_stats = scan_ideal_rsi(screened)
-
-    # STEP 3: TOP VOLUME PER QUOTE
+    # --------------------------------------------------------
+    # STEP 2: SELECT TOP VOLUME MARKETS
+    # --------------------------------------------------------
 
     selected = []
 
     for quote in ("rls", "usdt"):
 
         group = [
+
             market
+
             for market in screened
+
             if market["quote"] == quote
+
         ]
 
         group.sort(
@@ -1952,12 +2331,18 @@ def run_full_scan(state):
             group[:TOP_PER_QUOTE]
         )
 
-    # STEP 4: DEEP ANALYSIS
+    # --------------------------------------------------------
+    # STEP 3: DEEP ANALYSIS
+    # --------------------------------------------------------
 
     candidates = []
+
     failures_deep = 0
 
-    for index, market in enumerate(selected, 1):
+    for index, market in enumerate(
+        selected,
+        1
+    ):
 
         log.info(
             "Deep analysis %s/%s: %s",
@@ -1968,7 +2353,9 @@ def run_full_scan(state):
 
         try:
 
-            candidate, reason = analyze_market(market)
+            candidate, reason = analyze_market(
+                market
+            )
 
             if candidate is not None:
 
@@ -2000,9 +2387,13 @@ def run_full_scan(state):
             "تحلیل عمیق هیچ نماد معتبری تولید نکرد"
         )
 
-    # STEP 5: REMOVE DUPLICATES
+    # --------------------------------------------------------
+    # STEP 4: DEDUPLICATION
+    # --------------------------------------------------------
 
-    candidates = deduplicate_candidates(candidates)
+    candidates = deduplicate_candidates(
+        candidates
+    )
 
     candidates.sort(
         key=lambda item: item["rank"],
@@ -2012,19 +2403,29 @@ def run_full_scan(state):
     top_five = candidates[:MAX_WATCH]
 
     watchlist = [
+
         item
+
         for item in top_five
+
         if item["score"] >= MIN_WATCH_SCORE
+
     ]
 
-    # STATE UPDATE
+    # --------------------------------------------------------
+    # STEP 5: STATE UPDATE
+    # --------------------------------------------------------
 
     state["watchlist"] = watchlist
+
     state["last_scan"] = now_ts()
 
     state["last_scan_markets"] = len(markets)
+
     state["last_scan_screened"] = len(screened)
+
     state["last_scan_selected"] = len(selected)
+
     state["last_scan_analyzed"] = len(candidates)
 
     state["last_scan_failures"] = (
@@ -2032,108 +2433,125 @@ def run_full_scan(state):
     )
 
     state["top_results"] = top_five
-    state["top_rsi_results"] = top_rsi
-    state["rsi_stats"] = rsi_stats
 
-    # TELEGRAM REPORT
+    # --------------------------------------------------------
+    # STEP 6: TELEGRAM REPORT
+    # --------------------------------------------------------
 
-    message = [
+    message = scan_report(
 
-        "🚀 <b>گزارش اسکن هوشمند نوبیتکس | نسخه ۵.۲</b>",
+        len(markets),
 
-        line_separator(),
+        len(screened),
 
-        "",
+        len(selected),
 
-        f"🌐 بازارهای فعال: <b>{len(markets)}</b>",
+        len(candidates),
 
-        f"📊 بازارهای دارای داده یک‌ساعته: <b>{len(screened)}</b>",
+        len(watchlist),
 
-        f"🔬 بازارهای تحلیل عمیق: <b>{len(selected)}</b>",
+        failures_screen,
 
-        f"✅ تحلیل عمیق موفق: <b>{len(candidates)}</b>",
+        failures_deep
 
-        f"⚠️ خطای غربالگری: <b>{failures_screen}</b>",
-
-        f"⚠️ خطای تحلیل عمیق: <b>{failures_deep}</b>",
-
-        f"👀 نمادهای واردشده به پایش: <b>{len(watchlist)}</b>",
-
-        "",
-
-        "🏆 <b>پنج رتبه برتر تحلیل تکنیکال:</b>",
-
-        ""
-
-    ]
+    )
 
     if not top_five:
-        message.append("در این اسکن نماد مناسبی پیدا نشد.")
 
-    for index, item in enumerate(top_five, 1):
+        message.append(
+            "هیچ نماد مناسبی پیدا نشد."
+        )
+
+    for index, item in enumerate(
+        top_five,
+        1
+    ):
 
         message.extend(
             candidate_card(index, item)
         )
 
-    if not watchlist:
+    buys = [
 
-        message.extend([
+        item
 
-            "",
-            "⛔ هیچ نمادی امتیاز حداقل ۶۰ نگرفت.",
-            "فعلاً هیچ نمادی وارد فهرست پایش نشد."
+        for item in top_five
 
-        ])
+        if item["classification"] == "BUY"
 
-    # TIMEFRAME SCORES
+    ]
 
-    message.extend(
-        timeframe_score_section(candidates)
-    )
+    watches = [
 
-    # RSI TOP FIVE
+        item
 
-    message.extend(
-        ideal_rsi_section(
-            top_rsi,
-            rsi_stats
-        )
-    )
+        for item in top_five
+
+        if item["classification"] == "WATCH"
+
+    ]
 
     message.extend([
 
         "",
+
         line_separator(),
+
+        "📌 <b>خلاصه تصمیم:</b>",
+
+        f"🟢 موقعیت‌های دارای تأیید اولیه: <b>{len(buys)}</b>",
+
+        f"🟡 ارزهای قابل پایش: <b>{len(watches)}</b>",
+
+        "",
+
+        (
+            "⛔ هیچ موقعیت خریدی با تمام شروط استراتژی "
+            "پیدا نشد."
+            if not buys
+            else
+            "🟢 موقعیت‌های BUY نیازمند بررسی نهایی معامله‌گر هستند."
+        ),
+
+        "",
 
         "⚠️ <b>نکات مهم:</b>",
 
-        "• امتیاز، احتمال موفقیت معامله نیست.",
+        "• امتیاز بالا به معنی احتمال قطعی سود نیست.",
 
-        "• RSI صعودی به‌تنهایی سیگنال خرید نیست.",
+        "• شکست مقاومت باید با بسته‌شدن کندل تأیید شود.",
 
-        "• محدوده‌ها و اهداف، محاسبات تحلیلی هستند.",
+        "• حجم بالا به‌تنهایی سیگنال خرید نیست.",
 
-        "• «آماده بررسی» دستور خرید قطعی نیست.",
+        "• نسبت سود به زیان با هزینه تخمینی معامله محاسبه شده است.",
 
-        "• ربات سفارش خرید یا فروش ثبت نمی‌کند.",
+        "• کارمزد واقعی ممکن است با مقدار تخمینی متفاوت باشد.",
 
-        "• قبل از معامله واقعی، بک‌تست و حساب آزمایشی ضروری است.",
+        "• این ربات هیچ سفارش خرید یا فروشی ثبت نمی‌کند.",
+
+        "• استراتژی هنوز نیازمند بک‌تست و معاملات آزمایشی است.",
 
         line_separator()
 
     ])
 
-    telegram("\n".join(message))
+    telegram(
+        "\n".join(message)
+    )
 
-    log.info("Scan completed successfully")
+    log.info(
+        "Full scan completed successfully"
+    )
 
 
 # ============================================================
-# PRICE CONSISTENCY CHECK
+# PRICE CONSISTENCY
 # ============================================================
 
-def check_price_consistency(item, current_price):
+def check_price_consistency(
+    item,
+    current_price
+):
 
     scan_price = num(
         item.get("price_at_scan"),
@@ -2141,13 +2559,16 @@ def check_price_consistency(item, current_price):
     )
 
     if scan_price <= 0 or current_price <= 0:
+
         return False, None
 
-    difference = abs(
-        current_price - scan_price
-    ) / scan_price
+    difference = (
+        abs(current_price - scan_price)
+        / scan_price
+    )
 
     if difference > PRICE_MISMATCH_THRESHOLD:
+
         return True, difference
 
     return False, difference
@@ -2159,32 +2580,48 @@ def check_price_consistency(item, current_price):
 
 def monitor(state):
 
-    watchlist = state.get("watchlist", [])
+    watchlist = state.get(
+        "watchlist",
+        []
+    )
 
     if not watchlist:
 
-        log.info("No watchlist to monitor")
+        log.info(
+            "No watchlist to monitor"
+        )
+
         return
 
     prices = get_all_prices()
 
     if not prices:
 
-        log.warning("Could not refresh market prices")
+        log.warning(
+            "Could not refresh market prices"
+        )
+
         return
 
     for item in watchlist:
 
         symbol = item["symbol"]
 
-        key = symbol_to_market_key(symbol)
+        key = symbol_to_market_key(
+            symbol
+        )
 
-        price = num(prices.get(key), 0)
+        price = num(
+            prices.get(key),
+            0
+        )
 
         if price <= 0:
             continue
 
-        # PRICE MISMATCH PROTECTION
+        # ----------------------------------------------------
+        # PRICE MISMATCH
+        # ----------------------------------------------------
 
         mismatch, difference = check_price_consistency(
             item,
@@ -2193,9 +2630,13 @@ def monitor(state):
 
         if mismatch:
 
-            if not item.get("price_mismatch", False):
+            if not item.get(
+                "price_mismatch",
+                False
+            ):
 
                 item["price_mismatch"] = True
+
                 item["status"] = "DATA_MISMATCH"
 
                 percent = difference * 100
@@ -2206,13 +2647,13 @@ def monitor(state):
 
                     f"قیمت زمان اسکن: <code>{fmt(item['price_at_scan'])}</code>\n"
 
-                    f"قیمت فعلی API: <code>{fmt(price)}</code>\n"
+                    f"قیمت فعلی: <code>{fmt(price)}</code>\n"
 
-                    f"اختلاف: <b>{percent:.1f}%</b>\n\n"
+                    f"اختلاف: <b>{percent:.2f}%</b>\n\n"
 
-                    "⛔ برای جلوگیری از هشدار اشتباه، پایش معاملاتی این نماد متوقف شد.\n"
+                    "⛔ پایش این نماد متوقف شد.\n"
 
-                    "تا بررسی واحد قیمت و داده‌های نوبیتکس، به این نماد اتکا نکن."
+                    "ابتدا واحد قیمت و داده‌های بازار بررسی شود."
 
                 )
 
@@ -2228,24 +2669,48 @@ def monitor(state):
                     )
 
             item["last_price"] = price
+
             item["last_checked"] = now_ts()
 
             continue
 
-        if item.get("price_mismatch", False):
+        if item.get(
+            "price_mismatch",
+            False
+        ):
+
             continue
 
-        status = item.get("status", "WAITING")
+        status = item.get(
+            "status",
+            "WAITING"
+        )
 
-        low = num(item.get("entry_low"))
-        high = num(item.get("entry_high"))
-        stop = num(item.get("sl"))
-        target1 = num(item.get("tp1"))
-        target2 = num(item.get("tp2"))
+        low = num(
+            item.get("entry_low")
+        )
+
+        high = num(
+            item.get("entry_high")
+        )
+
+        stop = num(
+            item.get("sl")
+        )
+
+        target1 = num(
+            item.get("tp1")
+        )
+
+        target2 = num(
+            item.get("tp2")
+        )
 
         alert = None
 
+        # ----------------------------------------------------
         # WAITING
+        # ----------------------------------------------------
 
         if status == "WAITING":
 
@@ -2255,26 +2720,29 @@ def monitor(state):
 
                 alert = (
 
-                    f"⛔ <b>فرصت {esc(symbol)} نامعتبر شد.</b>\n\n"
+                    f"⛔ <b>موقعیت {esc(symbol)} نامعتبر شد.</b>\n\n"
 
                     f"قیمت فعلی: <code>{fmt(price)}</code>\n"
 
-                    f"حد ابطال محاسباتی: <code>{fmt(stop)}</code>"
+                    f"حد ابطال: <code>{fmt(stop)}</code>\n\n"
+
+                    "این موقعیت دیگر شرایط اولیه را ندارد."
 
                 )
 
             elif low <= price <= high:
 
                 item["status"] = "ENTRY_ZONE_ALERTED"
+
                 item["entry_alert_price"] = price
 
                 alert = (
 
-                    f"🟡 <b>قیمت {esc(symbol)} وارد محدوده موردنظر شد.</b>\n\n"
+                    f"🟡 <b>قیمت {esc(symbol)} وارد محدوده پایش شد.</b>\n\n"
 
                     f"قیمت فعلی: <code>{fmt(price)}</code>\n"
 
-                    f"محدوده محاسباتی: <code>{fmt(low)}</code> تا <code>{fmt(high)}</code>\n"
+                    f"محدوده: <code>{fmt(low)}</code> تا <code>{fmt(high)}</code>\n\n"
 
                     f"حد ضرر محاسباتی: <code>{fmt(stop)}</code>\n"
 
@@ -2282,38 +2750,85 @@ def monitor(state):
 
                     f"هدف دوم: <code>{fmt(target2)}</code>\n\n"
 
-                    "⚠️ این هشدار به معنی توصیه یا دستور خرید نیست.\n"
-
-                    "قبل از هر تصمیم، وضعیت بازار و حجم معاملات را بررسی کن."
+                    "⚠️ ورود نیازمند بررسی مجدد شرایط بازار است."
 
                 )
 
-            elif price > high + 0.75 * max(high - low, 0):
+            elif price > high * 1.015:
 
                 item["status"] = "MISSED"
 
                 alert = (
 
-                    f"⚠️ <b>محدوده مناسب {esc(symbol)} فعلاً از دسترس خارج شد.</b>\n\n"
+                    f"⚠️ <b>محدوده ورود {esc(symbol)} از دسترس خارج شد.</b>\n\n"
 
                     f"قیمت فعلی: <code>{fmt(price)}</code>\n\n"
 
-                    "دنبال قیمت نرو؛ منتظر موقعیت جدید بمان."
+                    "از تعقیب قیمت خودداری کن."
 
                 )
 
+        # ----------------------------------------------------
+        # BUY SETUP
+        # ----------------------------------------------------
+
+        elif status == "BUY_SETUP":
+
+            if price <= stop:
+
+                item["status"] = "INVALIDATED"
+
+                alert = (
+
+                    f"⛔ <b>شرایط اولیه {esc(symbol)} از بین رفت.</b>\n\n"
+
+                    f"قیمت: <code>{fmt(price)}</code>\n"
+
+                    f"حد ابطال: <code>{fmt(stop)}</code>"
+
+                )
+
+            elif price <= high and price >= low:
+
+                item["status"] = "ENTRY_ZONE_ALERTED"
+
+                item["entry_alert_price"] = price
+
+                alert = (
+
+                    f"🟢 <b>قیمت {esc(symbol)} در محدوده ورود تحلیلی است.</b>\n\n"
+
+                    f"قیمت فعلی: <code>{fmt(price)}</code>\n"
+
+                    f"حد ضرر: <code>{fmt(stop)}</code>\n"
+
+                    f"هدف اول: <code>{fmt(target1)}</code>\n"
+
+                    f"هدف دوم: <code>{fmt(target2)}</code>\n\n"
+
+                    "قبل از تصمیم، کندل و حجم را مجدداً بررسی کن."
+
+                )
+
+        # ----------------------------------------------------
         # AFTER ENTRY ALERT
+        # ----------------------------------------------------
 
         elif status == "ENTRY_ZONE_ALERTED":
 
-            alerts = item.setdefault("alerts", [])
+            alerts = item.setdefault(
+                "alerts",
+                []
+            )
 
             if (
                 price <= stop
-                and "THEORETICAL_SL_TOUCHED" not in alerts
+                and "SL_TOUCHED" not in alerts
             ):
 
-                alerts.append("THEORETICAL_SL_TOUCHED")
+                alerts.append(
+                    "SL_TOUCHED"
+                )
 
                 alert = (
 
@@ -2321,16 +2836,18 @@ def monitor(state):
 
                     f"قیمت: <code>{fmt(price)}</code>\n\n"
 
-                    "این گزارش معامله واقعی شما نیست."
+                    "این گزارش به معنی معامله واقعی نیست."
 
                 )
 
             elif (
                 price >= target2
-                and "THEORETICAL_TP2_TOUCHED" not in alerts
+                and "TP2_TOUCHED" not in alerts
             ):
 
-                alerts.append("THEORETICAL_TP2_TOUCHED")
+                alerts.append(
+                    "TP2_TOUCHED"
+                )
 
                 alert = (
 
@@ -2338,16 +2855,18 @@ def monitor(state):
 
                     f"قیمت: <code>{fmt(price)}</code>\n\n"
 
-                    "این صرفاً حرکت قیمت است."
+                    "این صرفاً گزارش حرکت قیمت است."
 
                 )
 
             elif (
                 price >= target1
-                and "THEORETICAL_TP1_TOUCHED" not in alerts
+                and "TP1_TOUCHED" not in alerts
             ):
 
-                alerts.append("THEORETICAL_TP1_TOUCHED")
+                alerts.append(
+                    "TP1_TOUCHED"
+                )
 
                 alert = (
 
@@ -2355,11 +2874,12 @@ def monitor(state):
 
                     f"قیمت: <code>{fmt(price)}</code>\n\n"
 
-                    "این صرفاً حرکت قیمت است."
+                    "این صرفاً گزارش حرکت قیمت است."
 
                 )
 
         item["last_price"] = price
+
         item["last_checked"] = now_ts()
 
         if alert:
@@ -2367,6 +2887,7 @@ def monitor(state):
             try:
 
                 telegram(alert)
+
                 item["last_alert_time"] = now_ts()
 
             except Exception as error:
@@ -2395,56 +2916,96 @@ def main():
 
     state = load_state()
 
-    old_version = int(state.get("version", 0))
+    old_version = int(
+        state.get("version", 0)
+    )
+
+    # Reset old strategy state
 
     if old_version < STATE_VERSION:
 
         log.info(
-            "State version changed. Resetting old scan schedule."
+            "State version changed. Resetting old watchlist."
         )
 
         state["last_scan"] = 0
+
         state["watchlist"] = []
+
         state["last_monitor"] = 0
 
     event_name = (
+
         os.getenv("EVENT_NAME", "")
+
         or os.getenv("GITHUB_EVENT_NAME", "")
+
     )
 
-    force = event_name == "workflow_dispatch"
+    force = (
+        event_name == "workflow_dispatch"
+    )
 
-    last_scan = int(state.get("last_scan", 0))
+    last_scan = int(
+        state.get("last_scan", 0)
+    )
 
     due = (
+
         now_ts() - last_scan
+
         >= SCAN_EVERY_SECONDS
+
     )
 
-    log.info("================================")
-    log.info("Nobitex Smart Scanner v5.2")
-    log.info("Force scan: %s", force)
-    log.info("Scan due: %s", due)
-    log.info("================================")
+    log.info(
+        "================================"
+    )
 
+    log.info(
+        "Nobitex Smart Trader V6"
+    )
+
+    log.info(
+        "Force scan: %s",
+        force
+    )
+
+    log.info(
+        "Scan due: %s",
+        due
+    )
+
+    log.info(
+        "================================"
+    )
+
+    # --------------------------------------------------------
     # FULL SCAN
+    # --------------------------------------------------------
 
     if force or due:
 
         try:
 
             run_full_scan(state)
+
             save_state(state)
 
         except Exception as error:
 
-            log.exception("FULL SCAN FAILED")
+            log.exception(
+                "FULL SCAN FAILED"
+            )
 
             try:
 
                 telegram(
+
                     "⚠️ <b>خطا در اسکن کامل نوبیتکس:</b>\n"
+
                     + esc(str(error)[:2500])
+
                 )
 
             except Exception as telegram_error:
@@ -2454,7 +3015,9 @@ def main():
                     telegram_error
                 )
 
+    # --------------------------------------------------------
     # PRICE MONITOR
+    # --------------------------------------------------------
 
     try:
 
@@ -2462,21 +3025,29 @@ def main():
 
     except Exception as error:
 
-        log.exception("MONITOR FAILED")
+        log.exception(
+            "MONITOR FAILED"
+        )
 
         try:
 
             telegram(
+
                 "⚠️ <b>خطا در پایش قیمت‌ها:</b>\n"
+
                 + esc(str(error)[:2500])
+
             )
 
         except Exception:
+
             pass
 
     save_state(state)
 
-    log.info("Bot cycle completed")
+    log.info(
+        "Bot cycle completed"
+    )
 
 
 # ============================================================
@@ -2484,4 +3055,5 @@ def main():
 # ============================================================
 
 if __name__ == "__main__":
+
     main()
