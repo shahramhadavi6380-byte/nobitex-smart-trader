@@ -10,7 +10,7 @@
       "raw_score": 58,
       "rank": 68.2,
       "classification": "WATCH",
-      "status": "WAITING",
+      "status": "MISSED",
       "spread": 0.3853564547206255,
       "price_at_scan": 5.15,
       "entry_low": 5.12425,
@@ -70,11 +70,12 @@
       "created": 1794235731,
       "alerts": [],
       "price_mismatch": false,
-      "last_price": 5.2443,
-      "last_checked": 1794238541
+      "last_price": 5.2801,
+      "last_checked": 1794242347,
+      "last_alert_time": 1794242349
     }
   ],
-  "last_monitor": 1794238541,
+  "last_monitor": 1794242349,
   "last_scan_markets": 462,
   "last_scan_candidates": 0,
   "last_scan_screened": 455,
