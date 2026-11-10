@@ -70,8 +70,8 @@
       "created": 1794285423,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 13905220.0,
-      "last_checked": 1794288299
+      "last_price": 13860000.0,
+      "last_checked": 1794291498
     },
     {
       "symbol": "EDGEIRT",
@@ -143,11 +143,11 @@
       "created": 1794285418,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 1036180.0,
-      "last_checked": 1794288299
+      "last_price": 1056480.0,
+      "last_checked": 1794291498
     }
   ],
-  "last_monitor": 1794288299,
+  "last_monitor": 1794291498,
   "last_scan_markets": 462,
   "last_scan_candidates": 0,
   "last_scan_screened": 455,
