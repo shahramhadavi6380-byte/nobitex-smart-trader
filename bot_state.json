@@ -69,8 +69,8 @@
       "created": 1794318723,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 13966470.0,
-      "last_checked": 1794318768
+      "last_price": 13836180.0,
+      "last_checked": 1794321261
     },
     {
       "symbol": "HOTIRT",
@@ -140,8 +140,8 @@
       "created": 1794318718,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 1165.999,
-      "last_checked": 1794318769
+      "last_price": 1142.18,
+      "last_checked": 1794321261
     },
     {
       "symbol": "NEARUSDT",
@@ -152,7 +152,7 @@
       "raw_score": 54,
       "rank": 63.5,
       "classification": "WATCH",
-      "status": "WAITING",
+      "status": "ENTRY_ZONE_ALERTED",
       "spread": 0.2484472049689413,
       "price_at_scan": 3.608,
       "entry_low": 3.597,
@@ -209,8 +209,10 @@
       "created": 1794318763,
       "alerts": [],
       "price_mismatch": false,
-      "last_price": 3.634,
-      "last_checked": 1794318769
+      "last_price": 3.625,
+      "last_checked": 1794321261,
+      "entry_alert_price": 3.625,
+      "last_alert_time": 1794321262
     },
     {
       "symbol": "ONEIRT",
@@ -279,11 +281,11 @@
       "created": 1794318693,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 4720.0,
-      "last_checked": 1794318771
+      "last_price": 4530.0,
+      "last_checked": 1794321262
     }
   ],
-  "last_monitor": 1794318771,
+  "last_monitor": 1794321262,
   "last_scan_markets": 464,
   "last_scan_candidates": 0,
   "last_scan_screened": 455,
