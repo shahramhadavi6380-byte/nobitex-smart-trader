@@ -69,8 +69,8 @@
       "created": 1794367083,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 4730.0,
-      "last_checked": 1794367162
+      "last_price": 4510.0,
+      "last_checked": 1794369561
     },
     {
       "symbol": "1M_PEPEIRT",
@@ -141,11 +141,11 @@
       "created": 1794367109,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 13877290.0,
-      "last_checked": 1794367163
+      "last_price": 13739800.0,
+      "last_checked": 1794369561
     }
   ],
-  "last_monitor": 1794367163,
+  "last_monitor": 1794369561,
   "last_scan_markets": 464,
   "last_scan_candidates": 0,
   "last_scan_screened": 455,
