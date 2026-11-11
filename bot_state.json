@@ -68,8 +68,8 @@
       "created": 1794417020,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 2685120000.0,
-      "last_checked": 1794417092
+      "last_price": 2715000030.0,
+      "last_checked": 1794419707
     },
     {
       "symbol": "ADAUSDT",
@@ -138,8 +138,8 @@
       "created": 1794417081,
       "alerts": [],
       "price_mismatch": false,
-      "last_price": 0.179,
-      "last_checked": 1794417092
+      "last_price": 0.1787,
+      "last_checked": 1794419707
     },
     {
       "symbol": "XAUTIRT",
@@ -207,8 +207,8 @@
       "created": 1794417028,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 10569999900.0,
-      "last_checked": 1794417094
+      "last_price": 10591983570.0,
+      "last_checked": 1794419707
     },
     {
       "symbol": "DOGSIRT",
@@ -277,11 +277,11 @@
       "created": 1794417049,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 83.481,
-      "last_checked": 1794417095
+      "last_price": 83.698,
+      "last_checked": 1794419707
     }
   ],
-  "last_monitor": 1794417095,
+  "last_monitor": 1794419707,
   "last_scan_markets": 464,
   "last_scan_candidates": 0,
   "last_scan_screened": 455,
