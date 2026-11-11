@@ -69,8 +69,8 @@
       "created": 1794435200,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 13.538,
-      "last_checked": 1794437549
+      "last_price": 12.715,
+      "last_checked": 1794440207
     },
     {
       "symbol": "DOGSIRT",
@@ -139,8 +139,8 @@
       "created": 1794435210,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 81.177,
-      "last_checked": 1794437549
+      "last_price": 80.55,
+      "last_checked": 1794440207
     },
     {
       "symbol": "OPGIRT",
@@ -209,8 +209,8 @@
       "created": 1794435213,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 354400.0,
-      "last_checked": 1794437549
+      "last_price": 358940.0,
+      "last_checked": 1794440207
     },
     {
       "symbol": "SOLIRT",
@@ -278,11 +278,11 @@
       "created": 1794435208,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 221300000.0,
-      "last_checked": 1794437549
+      "last_price": 219831350.0,
+      "last_checked": 1794440207
     }
   ],
-  "last_monitor": 1794437549,
+  "last_monitor": 1794440207,
   "last_scan_markets": 464,
   "last_scan_candidates": 0,
   "last_scan_screened": 457,
