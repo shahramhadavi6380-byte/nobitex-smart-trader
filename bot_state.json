@@ -70,8 +70,8 @@
       "created": 1794469801,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 3285000.0,
-      "last_checked": 1794472876
+      "last_price": 3293110.0,
+      "last_checked": 1794476135
     },
     {
       "symbol": "OPGIRT",
@@ -141,8 +141,8 @@
       "created": 1794469825,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 360870.0,
-      "last_checked": 1794472876
+      "last_price": 370470.0,
+      "last_checked": 1794476135
     },
     {
       "symbol": "XIRT",
@@ -210,11 +210,11 @@
       "created": 1794469814,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 12.696,
-      "last_checked": 1794472876
+      "last_price": 12.773,
+      "last_checked": 1794476135
     }
   ],
-  "last_monitor": 1794472876,
+  "last_monitor": 1794476135,
   "last_scan_markets": 464,
   "last_scan_candidates": 0,
   "last_scan_screened": 457,
