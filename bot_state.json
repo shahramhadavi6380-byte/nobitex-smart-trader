@@ -71,8 +71,8 @@
       "created": 1794486608,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 3374140.0,
-      "last_checked": 1794490834
+      "last_price": 3324720.0,
+      "last_checked": 1794494094
     },
     {
       "symbol": "OPGIRT",
@@ -142,11 +142,11 @@
       "created": 1794486626,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 366870.0,
-      "last_checked": 1794490834
+      "last_price": 371310.0,
+      "last_checked": 1794494094
     }
   ],
-  "last_monitor": 1794490834,
+  "last_monitor": 1794494094,
   "last_scan_markets": 464,
   "last_scan_candidates": 0,
   "last_scan_screened": 457,
