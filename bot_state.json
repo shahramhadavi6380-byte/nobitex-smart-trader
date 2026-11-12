@@ -70,8 +70,8 @@
       "created": 1794451205,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 3149500.0,
-      "last_checked": 1794460899
+      "last_price": 3147990.0,
+      "last_checked": 1794464553
     },
     {
       "symbol": "XIRT",
@@ -141,11 +141,11 @@
       "created": 1794451217,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 13.3,
-      "last_checked": 1794460899
+      "last_price": 12.815,
+      "last_checked": 1794464553
     }
   ],
-  "last_monitor": 1794460899,
+  "last_monitor": 1794464553,
   "last_scan_markets": 464,
   "last_scan_candidates": 0,
   "last_scan_screened": 457,
