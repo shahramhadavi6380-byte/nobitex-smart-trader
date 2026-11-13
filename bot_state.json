@@ -70,8 +70,8 @@
       "created": 1794572896,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 381.1,
-      "last_checked": 1794576830
+      "last_price": 377.5,
+      "last_checked": 1794580185
     },
     {
       "symbol": "SIRT",
@@ -141,8 +141,8 @@
       "created": 1794572894,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 102800.0,
-      "last_checked": 1794576830
+      "last_price": 103100.0,
+      "last_checked": 1794580185
     },
     {
       "symbol": "PUMPIRT",
@@ -211,8 +211,8 @@
       "created": 1794572912,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 9575.1,
-      "last_checked": 1794576830
+      "last_price": 9442.0,
+      "last_checked": 1794580185
     },
     {
       "symbol": "BARDIRT",
@@ -282,8 +282,8 @@
       "created": 1794572881,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 455610.0,
-      "last_checked": 1794576830
+      "last_price": 439910.0,
+      "last_checked": 1794580185
     },
     {
       "symbol": "GRAMIRT",
@@ -352,11 +352,11 @@
       "created": 1794572889,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 3099970.0,
-      "last_checked": 1794576830
+      "last_price": 3090000.0,
+      "last_checked": 1794580185
     }
   ],
-  "last_monitor": 1794576830,
+  "last_monitor": 1794580185,
   "last_scan_markets": 464,
   "last_scan_candidates": 0,
   "last_scan_screened": 459,
