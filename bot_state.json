@@ -71,8 +71,8 @@
       "created": 1794604069,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 383.072,
-      "last_checked": 1794611209
+      "last_price": 384.631,
+      "last_checked": 1794613386
     },
     {
       "symbol": "SIRT",
@@ -141,8 +141,8 @@
       "created": 1794604064,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 99610.0,
-      "last_checked": 1794611209
+      "last_price": 100600.0,
+      "last_checked": 1794613386
     },
     {
       "symbol": "BARDIRT",
@@ -211,11 +211,11 @@
       "created": 1794604051,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 371050.0,
-      "last_checked": 1794611209
+      "last_price": 375490.0,
+      "last_checked": 1794613386
     }
   ],
-  "last_monitor": 1794611209,
+  "last_monitor": 1794613386,
   "last_scan_markets": 464,
   "last_scan_candidates": 0,
   "last_scan_screened": 459,
