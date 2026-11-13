@@ -68,8 +68,8 @@
       "created": 1794538575,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 3141980.0,
-      "last_checked": 1794540981
+      "last_price": 3115680.0,
+      "last_checked": 1794544429
     },
     {
       "symbol": "XAUTIRT",
@@ -139,8 +139,8 @@
       "created": 1794538583,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 10641101090.0,
-      "last_checked": 1794540981
+      "last_price": 10601000540.0,
+      "last_checked": 1794544429
     },
     {
       "symbol": "PUMPIRT",
@@ -208,11 +208,11 @@
       "created": 1794538599,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 9102.4,
-      "last_checked": 1794540981
+      "last_price": 8941.7,
+      "last_checked": 1794544429
     }
   ],
-  "last_monitor": 1794540981,
+  "last_monitor": 1794544429,
   "last_scan_markets": 464,
   "last_scan_candidates": 0,
   "last_scan_screened": 459,
