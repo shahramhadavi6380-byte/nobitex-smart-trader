@@ -68,8 +68,8 @@
       "created": 1794556384,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 3133100.0,
-      "last_checked": 1794556455
+      "last_price": 3128000.0,
+      "last_checked": 1794559240
     },
     {
       "symbol": "ONEIRT",
@@ -137,11 +137,11 @@
       "created": 1794556379,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 4170.0,
-      "last_checked": 1794556457
+      "last_price": 4150.0,
+      "last_checked": 1794559240
     }
   ],
-  "last_monitor": 1794556457,
+  "last_monitor": 1794559240,
   "last_scan_markets": 464,
   "last_scan_candidates": 0,
   "last_scan_screened": 459,
