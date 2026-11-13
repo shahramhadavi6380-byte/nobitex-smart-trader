@@ -68,8 +68,8 @@
       "created": 1794521719,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 854030.0,
-      "last_checked": 1794531955
+      "last_price": 855790.0,
+      "last_checked": 1794535590
     },
     {
       "symbol": "PUMPIRT",
@@ -138,11 +138,11 @@
       "created": 1794521745,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 9361.2,
-      "last_checked": 1794531955
+      "last_price": 9328.2,
+      "last_checked": 1794535590
     }
   ],
-  "last_monitor": 1794531955,
+  "last_monitor": 1794535590,
   "last_scan_markets": 464,
   "last_scan_candidates": 0,
   "last_scan_screened": 459,
