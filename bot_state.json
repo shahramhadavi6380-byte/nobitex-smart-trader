@@ -67,8 +67,8 @@
       "created": 1794671372,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 370.99,
-      "last_checked": 1794677197
+      "last_price": 366.361,
+      "last_checked": 1794679145
     },
     {
       "symbol": "BARDIRT",
@@ -135,11 +135,11 @@
       "created": 1794671353,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 336800.0,
-      "last_checked": 1794677197
+      "last_price": 340990.0,
+      "last_checked": 1794679145
     }
   ],
-  "last_monitor": 1794677197,
+  "last_monitor": 1794679145,
   "last_scan_markets": 464,
   "last_scan_candidates": 0,
   "last_scan_screened": 459,
