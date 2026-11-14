@@ -70,8 +70,8 @@
       "created": 1794637244,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 387.88,
-      "last_checked": 1794644028
+      "last_price": 386.236,
+      "last_checked": 1794646725
     },
     {
       "symbol": "GRAMIRT",
@@ -139,11 +139,11 @@
       "created": 1794637237,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 2977440.0,
-      "last_checked": 1794644028
+      "last_price": 2978230.0,
+      "last_checked": 1794646725
     }
   ],
-  "last_monitor": 1794644028,
+  "last_monitor": 1794646725,
   "last_scan_markets": 464,
   "last_scan_candidates": 0,
   "last_scan_screened": 459,
