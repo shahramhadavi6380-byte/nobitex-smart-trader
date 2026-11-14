@@ -69,8 +69,8 @@
       "created": 1794619906,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 377.0,
-      "last_checked": 1794631022
+      "last_price": 387.399,
+      "last_checked": 1794634029
     },
     {
       "symbol": "SIRT",
@@ -140,11 +140,11 @@
       "created": 1794619901,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 98640.0,
-      "last_checked": 1794631022
+      "last_price": 99990.0,
+      "last_checked": 1794634029
     }
   ],
-  "last_monitor": 1794631022,
+  "last_monitor": 1794634029,
   "last_scan_markets": 464,
   "last_scan_candidates": 0,
   "last_scan_screened": 459,
