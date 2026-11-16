@@ -67,8 +67,8 @@
       "created": 1794870763,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 1548130.0,
-      "last_checked": 1794870816
+      "last_price": 1552160.0,
+      "last_checked": 1794872670
     },
     {
       "symbol": "BICOUSDT",
@@ -137,12 +137,12 @@
       "alerts": [],
       "price_mismatch": false,
       "entry_alert_price": 0.01154,
-      "last_price": 0.01154,
-      "last_checked": 1794870816,
+      "last_price": 0.0115,
+      "last_checked": 1794872670,
       "last_alert_time": 1794870818
     }
   ],
-  "last_monitor": 1794870818,
+  "last_monitor": 1794872670,
   "last_scan_markets": 466,
   "last_scan_candidates": 0,
   "last_scan_screened": 459,
