@@ -71,8 +71,8 @@
       "created": 1794918098,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 396.123,
-      "last_checked": 1794928986
+      "last_price": 389.087,
+      "last_checked": 1794932388
     },
     {
       "symbol": "AAVEUSDT",
@@ -143,12 +143,12 @@
       "alerts": [],
       "price_mismatch": false,
       "entry_alert_price": 113.35,
-      "last_price": 112.81,
-      "last_checked": 1794928986,
+      "last_price": 112.57,
+      "last_checked": 1794932388,
       "last_alert_time": 1794918138
     }
   ],
-  "last_monitor": 1794928986,
+  "last_monitor": 1794932388,
   "last_scan_markets": 466,
   "last_scan_candidates": 0,
   "last_scan_screened": 459,
