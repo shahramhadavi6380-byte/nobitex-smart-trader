@@ -69,8 +69,8 @@
       "created": 1794901809,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 2480010040.0,
-      "last_checked": 1794908401
+      "last_price": 2506000000.0,
+      "last_checked": 1794911887
     },
     {
       "symbol": "XAUTIRT",
@@ -140,8 +140,8 @@
       "created": 1794901827,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 10425735620.0,
-      "last_checked": 1794908401
+      "last_price": 10365521300.0,
+      "last_checked": 1794911887
     },
     {
       "symbol": "AAVEUSDT",
@@ -208,12 +208,14 @@
         "EMA20 بالای EMA50"
       ],
       "created": 1794901867,
-      "alerts": [],
+      "alerts": [
+        "SL_TOUCHED"
+      ],
       "price_mismatch": false,
       "entry_alert_price": 113.26,
-      "last_price": 112.12,
-      "last_checked": 1794908401,
-      "last_alert_time": 1794901888
+      "last_price": 111.69,
+      "last_checked": 1794911887,
+      "last_alert_time": 1794911888
     },
     {
       "symbol": "BICOUSDT",
@@ -282,8 +284,8 @@
       "alerts": [],
       "price_mismatch": false,
       "entry_alert_price": 0.01162,
-      "last_price": 0.01152,
-      "last_checked": 1794908401,
+      "last_price": 0.01157,
+      "last_checked": 1794911888,
       "last_alert_time": 1794901890
     },
     {
@@ -354,11 +356,11 @@
       "created": 1794901842,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 387.0,
-      "last_checked": 1794908401
+      "last_price": 392.0,
+      "last_checked": 1794911888
     }
   ],
-  "last_monitor": 1794908401,
+  "last_monitor": 1794911888,
   "last_scan_markets": 466,
   "last_scan_candidates": 0,
   "last_scan_screened": 459,
