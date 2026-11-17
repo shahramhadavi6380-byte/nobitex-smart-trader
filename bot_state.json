@@ -69,8 +69,8 @@
       "created": 1794901809,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 2501054090.0,
-      "last_checked": 1794901885
+      "last_price": 2480879990.0,
+      "last_checked": 1794904903
     },
     {
       "symbol": "XAUTIRT",
@@ -140,8 +140,8 @@
       "created": 1794901827,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 10434409110.0,
-      "last_checked": 1794901887
+      "last_price": 10406000100.0,
+      "last_checked": 1794904903
     },
     {
       "symbol": "AAVEUSDT",
@@ -211,8 +211,8 @@
       "alerts": [],
       "price_mismatch": false,
       "entry_alert_price": 113.26,
-      "last_price": 113.26,
-      "last_checked": 1794901887,
+      "last_price": 112.63,
+      "last_checked": 1794904903,
       "last_alert_time": 1794901888
     },
     {
@@ -282,8 +282,8 @@
       "alerts": [],
       "price_mismatch": false,
       "entry_alert_price": 0.01162,
-      "last_price": 0.01162,
-      "last_checked": 1794901888,
+      "last_price": 0.01169,
+      "last_checked": 1794904903,
       "last_alert_time": 1794901890
     },
     {
@@ -354,11 +354,11 @@
       "created": 1794901842,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 385.311,
-      "last_checked": 1794901891
+      "last_price": 383.002,
+      "last_checked": 1794904903
     }
   ],
-  "last_monitor": 1794901891,
+  "last_monitor": 1794904903,
   "last_scan_markets": 466,
   "last_scan_candidates": 0,
   "last_scan_screened": 459,
