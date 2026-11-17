@@ -67,8 +67,8 @@
       "created": 1794870763,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 1559510.0,
-      "last_checked": 1794875215
+      "last_price": 1566120.0,
+      "last_checked": 1794879899
     },
     {
       "symbol": "BICOUSDT",
@@ -134,15 +134,17 @@
         "RSI در محدوده مناسب"
       ],
       "created": 1794870812,
-      "alerts": [],
+      "alerts": [
+        "SL_TOUCHED"
+      ],
       "price_mismatch": false,
       "entry_alert_price": 0.01154,
-      "last_price": 0.0115,
-      "last_checked": 1794875215,
-      "last_alert_time": 1794870818
+      "last_price": 0.01145,
+      "last_checked": 1794879899,
+      "last_alert_time": 1794879900
     }
   ],
-  "last_monitor": 1794875215,
+  "last_monitor": 1794879900,
   "last_scan_markets": 466,
   "last_scan_candidates": 0,
   "last_scan_screened": 459,
