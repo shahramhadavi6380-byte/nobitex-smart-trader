@@ -70,8 +70,8 @@
       "created": 1794953086,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 388.972,
-      "last_checked": 1794958418
+      "last_price": 384.1,
+      "last_checked": 1794961333
     },
     {
       "symbol": "ASTERIRT",
@@ -140,8 +140,8 @@
       "created": 1794953084,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 1580000.0,
-      "last_checked": 1794958418
+      "last_price": 1564170.0,
+      "last_checked": 1794961333
     },
     {
       "symbol": "NEARUSDT",
@@ -211,8 +211,8 @@
       "created": 1794953100,
       "alerts": [],
       "price_mismatch": false,
-      "last_price": 3.368,
-      "last_checked": 1794958418,
+      "last_price": 3.376,
+      "last_checked": 1794961333,
       "last_alert_time": 1794955487
     },
     {
@@ -281,11 +281,11 @@
       "created": 1794953067,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 833010.0,
-      "last_checked": 1794958418
+      "last_price": 832840.0,
+      "last_checked": 1794961333
     }
   ],
-  "last_monitor": 1794958418,
+  "last_monitor": 1794961333,
   "last_scan_markets": 466,
   "last_scan_candidates": 0,
   "last_scan_screened": 459,
