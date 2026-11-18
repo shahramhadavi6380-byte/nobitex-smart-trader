@@ -68,8 +68,8 @@
       "created": 1794988640,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 2579138500.0,
-      "last_checked": 1794988714
+      "last_price": 2554640060.0,
+      "last_checked": 1794991482
     },
     {
       "symbol": "HMSTRUSDT",
@@ -80,7 +80,7 @@
       "raw_score": 58,
       "rank": 68.2,
       "classification": "WATCH",
-      "status": "WAITING",
+      "status": "ENTRY_ZONE_ALERTED",
       "spread": 0.2743484224965773,
       "price_at_scan": 0.0001462,
       "entry_low": 0.0001441,
@@ -139,8 +139,10 @@
       "created": 1794988702,
       "alerts": [],
       "price_mismatch": false,
-      "last_price": 0.0001462,
-      "last_checked": 1794988714
+      "last_price": 0.0001448,
+      "last_checked": 1794991482,
+      "entry_alert_price": 0.0001448,
+      "last_alert_time": 1794991483
     },
     {
       "symbol": "TRXIRT",
@@ -210,8 +212,8 @@
       "created": 1794988657,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 837690.0,
-      "last_checked": 1794988715
+      "last_price": 834990.0,
+      "last_checked": 1794991483
     },
     {
       "symbol": "XRPIRT",
@@ -281,8 +283,8 @@
       "created": 1794988662,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 2715200.0,
-      "last_checked": 1794988717
+      "last_price": 2699000.0,
+      "last_checked": 1794991483
     },
     {
       "symbol": "GRAMIRT",
@@ -351,11 +353,11 @@
       "created": 1794988667,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 2914560.0,
-      "last_checked": 1794988718
+      "last_price": 2886630.0,
+      "last_checked": 1794991483
     }
   ],
-  "last_monitor": 1794988718,
+  "last_monitor": 1794991483,
   "last_scan_markets": 466,
   "last_scan_candidates": 0,
   "last_scan_screened": 459,
