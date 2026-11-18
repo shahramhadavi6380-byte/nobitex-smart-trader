@@ -69,8 +69,8 @@
       "created": 1794969854,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 490290.0,
-      "last_checked": 1794979839
+      "last_price": 611000.0,
+      "last_checked": 1794983584
     },
     {
       "symbol": "TRXIRT",
@@ -140,11 +140,11 @@
       "created": 1794969856,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 834670.0,
-      "last_checked": 1794979839
+      "last_price": 835250.0,
+      "last_checked": 1794983584
     }
   ],
-  "last_monitor": 1794979839,
+  "last_monitor": 1794983584,
   "last_scan_markets": 466,
   "last_scan_candidates": 0,
   "last_scan_screened": 459,
