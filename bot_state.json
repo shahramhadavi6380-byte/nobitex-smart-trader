@@ -69,8 +69,8 @@
       "created": 1795005189,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 16820.0,
-      "last_checked": 1795005240
+      "last_price": 17110.0,
+      "last_checked": 1795009370
     },
     {
       "symbol": "TRXIRT",
@@ -140,8 +140,8 @@
       "created": 1795005179,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 840460.0,
-      "last_checked": 1795005241
+      "last_price": 840540.0,
+      "last_checked": 1795009370
     },
     {
       "symbol": "NEARUSDT",
@@ -211,12 +211,12 @@
       "created": 1795005218,
       "alerts": [],
       "price_mismatch": false,
-      "last_price": 3.327,
-      "last_checked": 1795005241,
+      "last_price": 3.359,
+      "last_checked": 1795009370,
       "last_alert_time": 1795005243
     }
   ],
-  "last_monitor": 1795005243,
+  "last_monitor": 1795009370,
   "last_scan_markets": 466,
   "last_scan_candidates": 0,
   "last_scan_screened": 459,
