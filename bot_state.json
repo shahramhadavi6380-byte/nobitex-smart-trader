@@ -68,8 +68,8 @@
       "created": 1795023250,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 233910.0,
-      "last_checked": 1795032218
+      "last_price": 235710.0,
+      "last_checked": 1795035243
     },
     {
       "symbol": "DEXEUSDT",
@@ -138,8 +138,8 @@
       "created": 1795023300,
       "alerts": [],
       "price_mismatch": false,
-      "last_price": 1.163,
-      "last_checked": 1795032218,
+      "last_price": 1.154,
+      "last_checked": 1795035243,
       "last_alert_time": 1795023311
     },
     {
@@ -210,8 +210,8 @@
       "created": 1795023243,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 670590.0,
-      "last_checked": 1795032218
+      "last_price": 669000.0,
+      "last_checked": 1795035243
     },
     {
       "symbol": "HUMAIRT",
@@ -280,8 +280,8 @@
       "created": 1795023252,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 23210.0,
-      "last_checked": 1795032218
+      "last_price": 22700.0,
+      "last_checked": 1795035243
     },
     {
       "symbol": "ZECIRT",
@@ -350,11 +350,11 @@
       "created": 1795023245,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 2477050000.0,
-      "last_checked": 1795032218
+      "last_price": 2479795830.0,
+      "last_checked": 1795035243
     }
   ],
-  "last_monitor": 1795032218,
+  "last_monitor": 1795035243,
   "last_scan_markets": 466,
   "last_scan_candidates": 0,
   "last_scan_screened": 459,
