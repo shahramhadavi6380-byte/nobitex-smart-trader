@@ -69,8 +69,8 @@
       "created": 1795091402,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 2660910.0,
-      "last_checked": 1795091461
+      "last_price": 2683120.0,
+      "last_checked": 1795095744
     },
     {
       "symbol": "MMTIRT",
@@ -139,8 +139,8 @@
       "created": 1795091391,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 555930.0,
-      "last_checked": 1795091462
+      "last_price": 602500.0,
+      "last_checked": 1795095744
     },
     {
       "symbol": "GRAMIRT",
@@ -208,8 +208,8 @@
       "created": 1795091419,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 2781560.0,
-      "last_checked": 1795091464
+      "last_price": 2818500.0,
+      "last_checked": 1795095744
     },
     {
       "symbol": "SOLUSDT",
@@ -278,12 +278,12 @@
       "alerts": [],
       "price_mismatch": false,
       "entry_alert_price": 74.29,
-      "last_price": 74.29,
-      "last_checked": 1795091464,
+      "last_price": 75.211,
+      "last_checked": 1795095744,
       "last_alert_time": 1795091465
     }
   ],
-  "last_monitor": 1795091465,
+  "last_monitor": 1795095744,
   "last_scan_markets": 466,
   "last_scan_candidates": 0,
   "last_scan_screened": 459,
