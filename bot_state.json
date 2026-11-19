@@ -67,8 +67,8 @@
       "created": 1795055309,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 216370.0,
-      "last_checked": 1795058046
+      "last_price": 221000.0,
+      "last_checked": 1795061318
     },
     {
       "symbol": "HUMAIRT",
@@ -138,8 +138,8 @@
       "created": 1795055302,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 24060.0,
-      "last_checked": 1795058046
+      "last_price": 23640.0,
+      "last_checked": 1795061318
     },
     {
       "symbol": "ZORAIRT",
@@ -206,8 +206,8 @@
       "created": 1795055322,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 12540.0,
-      "last_checked": 1795058046
+      "last_price": 12630.0,
+      "last_checked": 1795061318
     },
     {
       "symbol": "NEARUSDT",
@@ -275,15 +275,17 @@
         "MACD صعودی"
       ],
       "created": 1795055352,
-      "alerts": [],
+      "alerts": [
+        "TP2_TOUCHED"
+      ],
       "price_mismatch": false,
       "entry_alert_price": 3.32,
-      "last_price": 3.324,
-      "last_checked": 1795058046,
-      "last_alert_time": 1795055376
+      "last_price": 3.427,
+      "last_checked": 1795061318,
+      "last_alert_time": 1795061319
     }
   ],
-  "last_monitor": 1795058046,
+  "last_monitor": 1795061319,
   "last_scan_markets": 466,
   "last_scan_candidates": 0,
   "last_scan_screened": 459,
