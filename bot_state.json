@@ -69,8 +69,8 @@
       "alerts": [],
       "price_mismatch": false,
       "entry_alert_price": 0.0001407,
-      "last_price": 0.0001407,
-      "last_checked": 1795084384,
+      "last_price": 0.000141,
+      "last_checked": 1795087559,
       "last_alert_time": 1795073329
     },
     {
@@ -141,8 +141,8 @@
       "created": 1795073272,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 2654860.0,
-      "last_checked": 1795084384
+      "last_price": 2662830.0,
+      "last_checked": 1795087559
     },
     {
       "symbol": "NEARUSDT",
@@ -212,8 +212,8 @@
       "created": 1795073307,
       "alerts": [],
       "price_mismatch": false,
-      "last_price": 3.404,
-      "last_checked": 1795084384
+      "last_price": 3.401,
+      "last_checked": 1795087559
     },
     {
       "symbol": "ADAUSDT",
@@ -283,8 +283,8 @@
       "alerts": [],
       "price_mismatch": false,
       "entry_alert_price": 0.1536,
-      "last_price": 0.1536,
-      "last_checked": 1795084384,
+      "last_price": 0.1535,
+      "last_checked": 1795087559,
       "last_alert_time": 1795073332
     },
     {
@@ -356,12 +356,12 @@
       "alerts": [],
       "price_mismatch": false,
       "entry_alert_price": 74.741,
-      "last_price": 74.422,
-      "last_checked": 1795084384,
+      "last_price": 74.623,
+      "last_checked": 1795087559,
       "last_alert_time": 1795073333
     }
   ],
-  "last_monitor": 1795084384,
+  "last_monitor": 1795087559,
   "last_scan_markets": 466,
   "last_scan_candidates": 0,
   "last_scan_screened": 459,
