@@ -70,11 +70,11 @@
       "created": 1795174710,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 657000.0,
-      "last_checked": 1795185417
+      "last_price": 677960.0,
+      "last_checked": 1795188734
     }
   ],
-  "last_monitor": 1795185417,
+  "last_monitor": 1795188734,
   "last_scan_markets": 466,
   "last_scan_candidates": 0,
   "last_scan_screened": 461,
