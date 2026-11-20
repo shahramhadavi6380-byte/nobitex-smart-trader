@@ -68,8 +68,8 @@
       "created": 1795140855,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 3223730.0,
-      "last_checked": 1795143184
+      "last_price": 3204280.0,
+      "last_checked": 1795145938
     },
     {
       "symbol": "MMTIRT",
@@ -138,11 +138,11 @@
       "created": 1795140825,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 700390.0,
-      "last_checked": 1795143184
+      "last_price": 696350.0,
+      "last_checked": 1795145938
     }
   ],
-  "last_monitor": 1795143184,
+  "last_monitor": 1795145938,
   "last_scan_markets": 466,
   "last_scan_candidates": 0,
   "last_scan_screened": 461,
