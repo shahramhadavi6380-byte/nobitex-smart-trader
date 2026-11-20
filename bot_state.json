@@ -70,8 +70,8 @@
       "created": 1795157039,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 852460.0,
-      "last_checked": 1795167720
+      "last_price": 849850.0,
+      "last_checked": 1795171154
     },
     {
       "symbol": "HUMAIRT",
@@ -140,8 +140,8 @@
       "created": 1795157030,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 24760.0,
-      "last_checked": 1795167720
+      "last_price": 25620.0,
+      "last_checked": 1795171154
     },
     {
       "symbol": "MMTIRT",
@@ -208,11 +208,11 @@
       "created": 1795157025,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 691000.0,
-      "last_checked": 1795167720
+      "last_price": 710480.0,
+      "last_checked": 1795171154
     }
   ],
-  "last_monitor": 1795167720,
+  "last_monitor": 1795171154,
   "last_scan_markets": 466,
   "last_scan_candidates": 0,
   "last_scan_screened": 461,
