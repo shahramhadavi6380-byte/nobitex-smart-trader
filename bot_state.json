@@ -69,8 +69,8 @@
       "created": 1795266239,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 253840.0,
-      "last_checked": 1795268892
+      "last_price": 255660.0,
+      "last_checked": 1795271638
     },
     {
       "symbol": "BLURIRT",
@@ -139,8 +139,8 @@
       "created": 1795266211,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 19480.0,
-      "last_checked": 1795268892
+      "last_price": 19430.0,
+      "last_checked": 1795271638
     },
     {
       "symbol": "HMSTRIRT",
@@ -209,11 +209,11 @@
       "created": 1795266225,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 399.001,
-      "last_checked": 1795268892
+      "last_price": 396.0,
+      "last_checked": 1795271638
     }
   ],
-  "last_monitor": 1795268892,
+  "last_monitor": 1795271638,
   "last_scan_markets": 466,
   "last_scan_candidates": 0,
   "last_scan_screened": 461,
