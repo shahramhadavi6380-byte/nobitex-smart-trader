@@ -67,15 +67,17 @@
         "MACD صعودی"
       ],
       "created": 1795299177,
-      "alerts": [],
+      "alerts": [
+        "SL_TOUCHED"
+      ],
       "price_mismatch": false,
       "entry_alert_price": 0.0001448,
-      "last_price": 0.0001448,
-      "last_checked": 1795299188,
-      "last_alert_time": 1795299189
+      "last_price": 0.0001439,
+      "last_checked": 1795301008,
+      "last_alert_time": 1795301009
     }
   ],
-  "last_monitor": 1795299189,
+  "last_monitor": 1795301009,
   "last_scan_markets": 466,
   "last_scan_candidates": 0,
   "last_scan_screened": 461,
