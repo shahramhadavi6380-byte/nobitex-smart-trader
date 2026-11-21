@@ -69,8 +69,8 @@
       "created": 1795282376,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 19800.0,
-      "last_checked": 1795292036
+      "last_price": 19560.0,
+      "last_checked": 1795294363
     },
     {
       "symbol": "NEARUSDT",
@@ -140,11 +140,11 @@
       "price_mismatch": false,
       "entry_alert_price": 2.864,
       "last_price": 2.899,
-      "last_checked": 1795292036,
+      "last_checked": 1795294363,
       "last_alert_time": 1795282441
     }
   ],
-  "last_monitor": 1795292036,
+  "last_monitor": 1795294363,
   "last_scan_markets": 466,
   "last_scan_candidates": 0,
   "last_scan_screened": 461,
