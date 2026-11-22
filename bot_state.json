@@ -69,8 +69,8 @@
       "created": 1795365826,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 2528680.0,
-      "last_checked": 1795375864
+      "last_price": 2524070.0,
+      "last_checked": 1795378682
     },
     {
       "symbol": "TRXIRT",
@@ -140,8 +140,8 @@
       "created": 1795365818,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 835690.0,
-      "last_checked": 1795375864
+      "last_price": 834930.0,
+      "last_checked": 1795378682
     },
     {
       "symbol": "GRAMIRT",
@@ -210,8 +210,8 @@
       "created": 1795365844,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 2684510.0,
-      "last_checked": 1795375864
+      "last_price": 2673990.0,
+      "last_checked": 1795378682
     },
     {
       "symbol": "ADAUSDT",
@@ -282,7 +282,7 @@
       "price_mismatch": false,
       "entry_alert_price": 0.1459,
       "last_price": 0.1445,
-      "last_checked": 1795375864,
+      "last_checked": 1795378682,
       "last_alert_time": 1795365895
     },
     {
@@ -353,12 +353,12 @@
       "alerts": [],
       "price_mismatch": false,
       "entry_alert_price": 560.7876,
-      "last_price": 558.4633,
-      "last_checked": 1795375864,
+      "last_price": 556.644,
+      "last_checked": 1795378682,
       "last_alert_time": 1795365897
     }
   ],
-  "last_monitor": 1795375864,
+  "last_monitor": 1795378682,
   "last_scan_markets": 466,
   "last_scan_candidates": 0,
   "last_scan_screened": 461,
