@@ -70,8 +70,8 @@
       "created": 1795332968,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 3222050.0,
-      "last_checked": 1795341185
+      "last_price": 3231740.0,
+      "last_checked": 1795343646
     },
     {
       "symbol": "MMTIRT",
@@ -139,8 +139,8 @@
       "created": 1795332982,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 663000.0,
-      "last_checked": 1795341185
+      "last_price": 655470.0,
+      "last_checked": 1795343646
     },
     {
       "symbol": "HMSTRUSDT",
@@ -209,8 +209,8 @@
       "alerts": [],
       "price_mismatch": false,
       "entry_alert_price": 0.0001434,
-      "last_price": 0.000146,
-      "last_checked": 1795341185,
+      "last_price": 0.0001459,
+      "last_checked": 1795343646,
       "last_alert_time": 1795333032
     },
     {
@@ -281,11 +281,11 @@
       "price_mismatch": false,
       "entry_alert_price": 0.9974,
       "last_price": 0.9971,
-      "last_checked": 1795341185,
+      "last_checked": 1795343646,
       "last_alert_time": 1795333034
     }
   ],
-  "last_monitor": 1795341185,
+  "last_monitor": 1795343646,
   "last_scan_markets": 466,
   "last_scan_candidates": 0,
   "last_scan_screened": 461,
