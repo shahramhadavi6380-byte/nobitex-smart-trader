@@ -72,12 +72,12 @@
       ],
       "price_mismatch": false,
       "entry_alert_price": 0.0001448,
-      "last_price": 0.0001427,
-      "last_checked": 1795307626,
+      "last_price": 0.0001426,
+      "last_checked": 1795312054,
       "last_alert_time": 1795301009
     }
   ],
-  "last_monitor": 1795307626,
+  "last_monitor": 1795312054,
   "last_scan_markets": 466,
   "last_scan_candidates": 0,
   "last_scan_screened": 461,
