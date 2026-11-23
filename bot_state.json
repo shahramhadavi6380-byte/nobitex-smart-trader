@@ -69,8 +69,8 @@
       "created": 1795433931,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 9981500000.0,
-      "last_checked": 1795442102
+      "last_price": 10075845820.0,
+      "last_checked": 1795445425
     },
     {
       "symbol": "ZILIRT",
@@ -139,8 +139,8 @@
       "created": 1795433937,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 2180.0,
-      "last_checked": 1795442102
+      "last_price": 2230.0,
+      "last_checked": 1795445425
     },
     {
       "symbol": "DOGEIRT",
@@ -210,8 +210,8 @@
       "created": 1795433950,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 153413.0,
-      "last_checked": 1795442102
+      "last_price": 162349.0,
+      "last_checked": 1795445425
     },
     {
       "symbol": "ETHIRT",
@@ -280,8 +280,8 @@
       "created": 1795433934,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 4729488190.0,
-      "last_checked": 1795442102
+      "last_price": 4911898320.0,
+      "last_checked": 1795445425
     },
     {
       "symbol": "GRAMIRT",
@@ -350,11 +350,11 @@
       "created": 1795433955,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 2759990.0,
-      "last_checked": 1795442102
+      "last_price": 2803670.0,
+      "last_checked": 1795445425
     }
   ],
-  "last_monitor": 1795442102,
+  "last_monitor": 1795445425,
   "last_scan_markets": 466,
   "last_scan_candidates": 0,
   "last_scan_screened": 461,
