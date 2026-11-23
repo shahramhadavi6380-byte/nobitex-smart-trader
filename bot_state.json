@@ -69,8 +69,8 @@
       "created": 1795417254,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 2730000.0,
-      "last_checked": 1795417297
+      "last_price": 2776130.0,
+      "last_checked": 1795421803
     },
     {
       "symbol": "BNBUSDT",
@@ -140,8 +140,8 @@
       "alerts": [],
       "price_mismatch": false,
       "entry_alert_price": 558.5911,
-      "last_price": 558.5911,
-      "last_checked": 1795417297,
+      "last_price": 556.6028,
+      "last_checked": 1795421803,
       "last_alert_time": 1795417299
     },
     {
@@ -212,8 +212,8 @@
       "created": 1795417234,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 10037880320.0,
-      "last_checked": 1795417300
+      "last_price": 9962053630.0,
+      "last_checked": 1795421803
     },
     {
       "symbol": "PUMPIRT",
@@ -284,8 +284,8 @@
       "created": 1795417239,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 7150.0,
-      "last_checked": 1795417302
+      "last_price": 7110.0,
+      "last_checked": 1795421803
     },
     {
       "symbol": "BTCIRT",
@@ -355,11 +355,11 @@
       "created": 1795417222,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 168510000160.0,
-      "last_checked": 1795417303
+      "last_price": 169139743000.0,
+      "last_checked": 1795421803
     }
   ],
-  "last_monitor": 1795417303,
+  "last_monitor": 1795421803,
   "last_scan_markets": 466,
   "last_scan_candidates": 0,
   "last_scan_screened": 461,
