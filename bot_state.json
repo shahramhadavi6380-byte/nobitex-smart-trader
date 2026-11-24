@@ -69,8 +69,8 @@
       "created": 1795535766,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 895430.0,
-      "last_checked": 1795544871
+      "last_price": 894190.0,
+      "last_checked": 1795548506
     },
     {
       "symbol": "MMTIRT",
@@ -139,8 +139,8 @@
       "created": 1795535763,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 650460.0,
-      "last_checked": 1795544871
+      "last_price": 648640.0,
+      "last_checked": 1795548506
     },
     {
       "symbol": "BTCIRT",
@@ -209,11 +209,11 @@
       "created": 1795535748,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 174750000000.0,
-      "last_checked": 1795544871
+      "last_price": 173385247970.0,
+      "last_checked": 1795548506
     }
   ],
-  "last_monitor": 1795544871,
+  "last_monitor": 1795548506,
   "last_scan_markets": 470,
   "last_scan_candidates": 0,
   "last_scan_screened": 461,
