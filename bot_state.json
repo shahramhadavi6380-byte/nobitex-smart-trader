@@ -70,8 +70,8 @@
       "created": 1795517337,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 2799900.0,
-      "last_checked": 1795528474
+      "last_price": 2818300.0,
+      "last_checked": 1795531657
     },
     {
       "symbol": "ZILIRT",
@@ -141,8 +141,8 @@
       "created": 1795517316,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 2310.0,
-      "last_checked": 1795528474
+      "last_price": 2370.0,
+      "last_checked": 1795531657
     },
     {
       "symbol": "SOLIRT",
@@ -212,8 +212,8 @@
       "created": 1795517335,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 202000000.0,
-      "last_checked": 1795528474
+      "last_price": 202293550.0,
+      "last_checked": 1795531657
     },
     {
       "symbol": "PUMPIRT",
@@ -282,8 +282,8 @@
       "created": 1795517332,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 7006.6,
-      "last_checked": 1795528474
+      "last_price": 7109.9,
+      "last_checked": 1795531657
     },
     {
       "symbol": "BTCIRT",
@@ -353,11 +353,11 @@
       "created": 1795517312,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 173219999580.0,
-      "last_checked": 1795528474
+      "last_price": 174251051780.0,
+      "last_checked": 1795531657
     }
   ],
-  "last_monitor": 1795528474,
+  "last_monitor": 1795531657,
   "last_scan_markets": 466,
   "last_scan_candidates": 0,
   "last_scan_screened": 461,
