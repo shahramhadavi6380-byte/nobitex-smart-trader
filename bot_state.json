@@ -70,8 +70,8 @@
       "created": 1795552115,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 898870.0,
-      "last_checked": 1795561656
+      "last_price": 897400.0,
+      "last_checked": 1795564357
     },
     {
       "symbol": "XRPIRT",
@@ -141,8 +141,8 @@
       "created": 1795552125,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 2698280.0,
-      "last_checked": 1795561656
+      "last_price": 2689520.0,
+      "last_checked": 1795564357
     },
     {
       "symbol": "GRAMIRT",
@@ -211,8 +211,8 @@
       "created": 1795552137,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 2750000.0,
-      "last_checked": 1795561656
+      "last_price": 2759290.0,
+      "last_checked": 1795564357
     },
     {
       "symbol": "DOGEIRT",
@@ -282,11 +282,11 @@
       "created": 1795552131,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 161480.0,
-      "last_checked": 1795561656
+      "last_price": 160795.0,
+      "last_checked": 1795564357
     }
   ],
-  "last_monitor": 1795561656,
+  "last_monitor": 1795564357,
   "last_scan_markets": 470,
   "last_scan_candidates": 0,
   "last_scan_screened": 461,
