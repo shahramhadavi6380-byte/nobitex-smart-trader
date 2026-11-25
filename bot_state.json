@@ -70,8 +70,8 @@
       "created": 1795646410,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 10488008040.0,
-      "last_checked": 1795646475
+      "last_price": 10445006660.0,
+      "last_checked": 1795649074
     },
     {
       "symbol": "GRAMUSDT",
@@ -140,8 +140,8 @@
       "created": 1795646462,
       "alerts": [],
       "price_mismatch": false,
-      "last_price": 0.961,
-      "last_checked": 1795646475
+      "last_price": 0.964,
+      "last_checked": 1795649074
     },
     {
       "symbol": "XRPIRT",
@@ -211,8 +211,8 @@
       "created": 1795646426,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 2760000.0,
-      "last_checked": 1795646476
+      "last_price": 2749090.0,
+      "last_checked": 1795649074
     },
     {
       "symbol": "SOLIRT",
@@ -282,8 +282,8 @@
       "created": 1795646438,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 207652230.0,
-      "last_checked": 1795646478
+      "last_price": 207149850.0,
+      "last_checked": 1795649074
     },
     {
       "symbol": "TRXIRT",
@@ -350,11 +350,11 @@
       "created": 1795646422,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 891940.0,
-      "last_checked": 1795646479
+      "last_price": 891470.0,
+      "last_checked": 1795649074
     }
   ],
-  "last_monitor": 1795646479,
+  "last_monitor": 1795649074,
   "last_scan_markets": 470,
   "last_scan_candidates": 0,
   "last_scan_screened": 463,
