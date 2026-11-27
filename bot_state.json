@@ -71,8 +71,8 @@
       "created": 1795766712,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 908360.0,
-      "last_checked": 1795773184
+      "last_price": 908610.0,
+      "last_checked": 1795776049
     },
     {
       "symbol": "DOGEIRT",
@@ -142,8 +142,8 @@
       "created": 1795766715,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 173478.0,
-      "last_checked": 1795773184
+      "last_price": 174550.0,
+      "last_checked": 1795776049
     },
     {
       "symbol": "BTCIRT",
@@ -213,8 +213,8 @@
       "created": 1795766692,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 183289999970.0,
-      "last_checked": 1795773184
+      "last_price": 183000000000.0,
+      "last_checked": 1795776049
     },
     {
       "symbol": "SOLIRT",
@@ -284,8 +284,8 @@
       "created": 1795766725,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 218339420.0,
-      "last_checked": 1795773184
+      "last_price": 218403430.0,
+      "last_checked": 1795776049
     },
     {
       "symbol": "XAUTIRT",
@@ -355,11 +355,11 @@
       "created": 1795766703,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 10879999990.0,
-      "last_checked": 1795773184
+      "last_price": 10880000000.0,
+      "last_checked": 1795776049
     }
   ],
-  "last_monitor": 1795773184,
+  "last_monitor": 1795776049,
   "last_scan_markets": 470,
   "last_scan_candidates": 0,
   "last_scan_screened": 463,
