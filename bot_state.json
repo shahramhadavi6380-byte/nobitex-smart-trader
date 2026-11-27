@@ -71,8 +71,8 @@
       "created": 1795731783,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 909200.0,
-      "last_checked": 1795734793
+      "last_price": 904730.0,
+      "last_checked": 1795737879
     },
     {
       "symbol": "GRAMUSDT",
@@ -144,8 +144,8 @@
       "alerts": [],
       "price_mismatch": false,
       "entry_alert_price": 0.969,
-      "last_price": 0.966,
-      "last_checked": 1795734793,
+      "last_price": 0.963,
+      "last_checked": 1795737879,
       "last_alert_time": 1795731835
     },
     {
@@ -216,8 +216,8 @@
       "created": 1795731791,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 167630.0,
-      "last_checked": 1795734793
+      "last_price": 168400.0,
+      "last_checked": 1795737879
     },
     {
       "symbol": "BTCIRT",
@@ -288,8 +288,8 @@
       "created": 1795731766,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 180541990520.0,
-      "last_checked": 1795734793
+      "last_price": 180104716220.0,
+      "last_checked": 1795737879
     },
     {
       "symbol": "SOLIRT",
@@ -359,11 +359,11 @@
       "created": 1795731794,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 211401980.0,
-      "last_checked": 1795734793
+      "last_price": 211789650.0,
+      "last_checked": 1795737879
     }
   ],
-  "last_monitor": 1795734793,
+  "last_monitor": 1795737879,
   "last_scan_markets": 470,
   "last_scan_candidates": 0,
   "last_scan_screened": 463,
