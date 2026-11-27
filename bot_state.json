@@ -69,8 +69,8 @@
       "created": 1795798227,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 2939990.0,
-      "last_checked": 1795798272
+      "last_price": 2909760.0,
+      "last_checked": 1795800960
     },
     {
       "symbol": "ZECIRT",
@@ -138,8 +138,8 @@
       "created": 1795798186,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 2230000000.0,
-      "last_checked": 1795798274
+      "last_price": 2175170000.0,
+      "last_checked": 1795800960
     },
     {
       "symbol": "PUMPIRT",
@@ -206,11 +206,11 @@
       "created": 1795798224,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 7704.2,
-      "last_checked": 1795798275
+      "last_price": 7600.0,
+      "last_checked": 1795800960
     }
   ],
-  "last_monitor": 1795798275,
+  "last_monitor": 1795800960,
   "last_scan_markets": 470,
   "last_scan_candidates": 0,
   "last_scan_screened": 463,
