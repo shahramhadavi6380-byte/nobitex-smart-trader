@@ -70,8 +70,8 @@
       "created": 1795814489,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 10839565470.0,
-      "last_checked": 1795820497
+      "last_price": 10828000000.0,
+      "last_checked": 1795823456
     },
     {
       "symbol": "XRPIRT",
@@ -140,8 +140,8 @@
       "created": 1795814493,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 2802670.0,
-      "last_checked": 1795820497
+      "last_price": 2809960.0,
+      "last_checked": 1795823456
     },
     {
       "symbol": "NEARUSDT",
@@ -208,12 +208,14 @@
         "MACD صعودی"
       ],
       "created": 1795814535,
-      "alerts": [],
+      "alerts": [
+        "SL_TOUCHED"
+      ],
       "price_mismatch": false,
       "entry_alert_price": 3.046,
-      "last_price": 3.035,
-      "last_checked": 1795820497,
-      "last_alert_time": 1795814549
+      "last_price": 3.021,
+      "last_checked": 1795823456,
+      "last_alert_time": 1795823457
     },
     {
       "symbol": "SSVIRT",
@@ -282,8 +284,8 @@
       "created": 1795814491,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 7884200.0,
-      "last_checked": 1795820497
+      "last_price": 7868380.0,
+      "last_checked": 1795823457
     },
     {
       "symbol": "SOLIRT",
@@ -351,11 +353,11 @@
       "created": 1795814505,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 211496370.0,
-      "last_checked": 1795820497
+      "last_price": 211846340.0,
+      "last_checked": 1795823457
     }
   ],
-  "last_monitor": 1795820497,
+  "last_monitor": 1795823457,
   "last_scan_markets": 470,
   "last_scan_candidates": 0,
   "last_scan_screened": 463,
