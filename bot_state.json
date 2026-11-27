@@ -70,8 +70,8 @@
       "created": 1795746890,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 183500000000.0,
-      "last_checked": 1795750255
+      "last_price": 183110000010.0,
+      "last_checked": 1795754194
     },
     {
       "symbol": "XAUTIRT",
@@ -142,8 +142,8 @@
       "created": 1795746900,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 10759999840.0,
-      "last_checked": 1795750255
+      "last_price": 10779999990.0,
+      "last_checked": 1795754194
     },
     {
       "symbol": "XRPIRT",
@@ -214,8 +214,8 @@
       "created": 1795746907,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 2866200.0,
-      "last_checked": 1795750255
+      "last_price": 2860310.0,
+      "last_checked": 1795754194
     },
     {
       "symbol": "PUMPIRT",
@@ -286,8 +286,8 @@
       "created": 1795746911,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 7989.9,
-      "last_checked": 1795750255
+      "last_price": 7950.0,
+      "last_checked": 1795754194
     },
     {
       "symbol": "ETHIRT",
@@ -358,11 +358,11 @@
       "created": 1795746902,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 5149000110.0,
-      "last_checked": 1795750255
+      "last_price": 5162000000.0,
+      "last_checked": 1795754194
     }
   ],
-  "last_monitor": 1795750255,
+  "last_monitor": 1795754194,
   "last_scan_markets": 470,
   "last_scan_candidates": 0,
   "last_scan_screened": 463,
