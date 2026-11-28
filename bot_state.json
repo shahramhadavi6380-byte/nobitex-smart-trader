@@ -67,8 +67,8 @@
       "created": 1795847957,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 169000.0,
-      "last_checked": 1795855070
+      "last_price": 169399.0,
+      "last_checked": 1795858129
     },
     {
       "symbol": "SOLIRT",
@@ -136,8 +136,8 @@
       "created": 1795847972,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 212161550.0,
-      "last_checked": 1795855070
+      "last_price": 211495050.0,
+      "last_checked": 1795858129
     },
     {
       "symbol": "BTCIRT",
@@ -204,11 +204,11 @@
       "created": 1795847939,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 177549999990.0,
-      "last_checked": 1795855070
+      "last_price": 177403666240.0,
+      "last_checked": 1795858129
     }
   ],
-  "last_monitor": 1795855070,
+  "last_monitor": 1795858129,
   "last_scan_markets": 470,
   "last_scan_candidates": 0,
   "last_scan_screened": 463,
