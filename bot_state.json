@@ -71,8 +71,8 @@
       "created": 1795864550,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 8076720.0,
-      "last_checked": 1795864608
+      "last_price": 8115870.0,
+      "last_checked": 1795866772
     },
     {
       "symbol": "SOLIRT",
@@ -141,8 +141,8 @@
       "created": 1795864567,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 211551240.0,
-      "last_checked": 1795864609
+      "last_price": 211905030.0,
+      "last_checked": 1795866772
     },
     {
       "symbol": "SKYUSDT",
@@ -213,8 +213,8 @@
       "alerts": [],
       "price_mismatch": false,
       "entry_alert_price": 0.05086,
-      "last_price": 0.05086,
-      "last_checked": 1795864609,
+      "last_price": 0.05066,
+      "last_checked": 1795866772,
       "last_alert_time": 1795864611
     },
     {
@@ -283,8 +283,8 @@
       "created": 1795864569,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 7610.0,
-      "last_checked": 1795864612
+      "last_price": 7630.0,
+      "last_checked": 1795866772
     },
     {
       "symbol": "DOGEIRT",
@@ -353,11 +353,11 @@
       "created": 1795864555,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 169534.0,
-      "last_checked": 1795864613
+      "last_price": 169702.0,
+      "last_checked": 1795866772
     }
   ],
-  "last_monitor": 1795864613,
+  "last_monitor": 1795866772,
   "last_scan_markets": 470,
   "last_scan_candidates": 0,
   "last_scan_screened": 463,
