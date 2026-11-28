@@ -70,8 +70,8 @@
       "created": 1795814489,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 10828000000.0,
-      "last_checked": 1795823456
+      "last_price": 10823218420.0,
+      "last_checked": 1795826420
     },
     {
       "symbol": "XRPIRT",
@@ -140,8 +140,8 @@
       "created": 1795814493,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 2809960.0,
-      "last_checked": 1795823456
+      "last_price": 2809800.0,
+      "last_checked": 1795826420
     },
     {
       "symbol": "NEARUSDT",
@@ -213,8 +213,8 @@
       ],
       "price_mismatch": false,
       "entry_alert_price": 3.046,
-      "last_price": 3.021,
-      "last_checked": 1795823456,
+      "last_price": 3.014,
+      "last_checked": 1795826420,
       "last_alert_time": 1795823457
     },
     {
@@ -284,8 +284,8 @@
       "created": 1795814491,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 7868380.0,
-      "last_checked": 1795823457
+      "last_price": 8002380.0,
+      "last_checked": 1795826420
     },
     {
       "symbol": "SOLIRT",
@@ -353,11 +353,11 @@
       "created": 1795814505,
       "alerts": [],
       "price_mismatch": true,
-      "last_price": 211846340.0,
-      "last_checked": 1795823457
+      "last_price": 211961180.0,
+      "last_checked": 1795826420
     }
   ],
-  "last_monitor": 1795823457,
+  "last_monitor": 1795826420,
   "last_scan_markets": 470,
   "last_scan_candidates": 0,
   "last_scan_screened": 463,
